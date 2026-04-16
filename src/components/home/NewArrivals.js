@@ -142,7 +142,7 @@ export default function NewArrivals() {
   const headerRef = useGsapReveal({ y: 24, duration: 1.1 });
   const lineRef = useRef(null);
   const ctaRef = useGsapReveal({ y: 20, duration: 0.9, start: "top 95%" });
-
+  console.log("newProducts", newProducts);
   useEffect(() => {
     const fetchTopProducts = async () => {
       try {
