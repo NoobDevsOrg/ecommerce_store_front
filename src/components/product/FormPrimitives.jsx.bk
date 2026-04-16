@@ -1,0 +1,120 @@
+"use client";
+
+function cx(...classes) {
+  return classes.filter(Boolean).join(" ");
+}
+
+export function FormSection({ title, description, children, tone = "default" }) {
+  return (
+    <section
+      className={cx(
+        "rounded-3xl border bg-white/90 p-5 shadow-sm backdrop-blur transition md:p-6 dark:bg-slate-950/50",
+        tone === "accent"
+          ? "border-amber-200/80 shadow-amber-100/40 dark:border-amber-500/30"
+          : "border-slate-200 dark:border-slate-800",
+      )}
+    >
+      <header className="mb-5 space-y-1">
+        <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100">{title}</h2>
+        {description ? <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p> : null}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+export function FormField({ id, label, required = false, helperText, error, children }) {
+  const helperId = helperText ? `${id}-help` : undefined;
+  const errorId = error ? `${id}-error` : undefined;
+  const describedBy = [helperId, errorId].filter(Boolean).join(" ") || undefined;
+
+  return (
+    <div className="space-y-2">
+      <label htmlFor={id} className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+        {label}
+        {required ? <span className="ml-1 text-rose-500">*</span> : null}
+      </label>
+      {typeof children === "function" ? children({ describedBy, error: Boolean(error) }) : children}
+      {helperText ? (
+        <p id={helperId} className="text-xs text-slate-500 dark:text-slate-400">
+          {helperText}
+        </p>
+      ) : null}
+      {error ? (
+        <p id={errorId} className="flex items-start gap-1 text-xs font-medium text-rose-600 dark:text-rose-300">
+          <span aria-hidden="true">!</span>
+          <span>{error}</span>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function TextInput({ className, error, ...props }) {
+  return <input {...props} className={cx("onboarding-input", error && "onboarding-input-error", className)} />;
+}
+
+export function TextareaInput({ className, error, ...props }) {
+  return <textarea {...props} className={cx("onboarding-input onboarding-textarea", error && "onboarding-input-error", className)} />;
+}
+
+export function SelectInput({ className, error, children, ...props }) {
+  return (
+    <select {...props} className={cx("onboarding-input", error && "onboarding-input-error", className)}>
+      {children}
+    </select>
+  );
+}
+
+export function ToggleField({ id, label, description, checked, onChange, disabled = false }) {
+  return (
+    <label
+      htmlFor={id}
+      className={cx(
+        "flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 transition hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700",
+        disabled && "cursor-not-allowed opacity-70",
+      )}
+    >
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-2 focus:ring-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:focus:ring-slate-500"
+      />
+      <span>
+        <span className="block text-sm font-medium text-slate-700 dark:text-slate-100">{label}</span>
+        {description ? <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{description}</span> : null}
+      </span>
+    </label>
+  );
+}
+
+export function PrimaryButton({ className, children, ...props }) {
+  return (
+    <button
+      {...props}
+      className={cx(
+        "inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition duration-150 hover:-translate-y-0.5 hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function SecondaryButton({ className, children, ...props }) {
+  return (
+    <button
+      {...props}
+      className={cx(
+        "inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}

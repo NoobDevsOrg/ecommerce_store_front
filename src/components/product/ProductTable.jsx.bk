@@ -1,0 +1,127 @@
+"use client";
+
+export default function ProductTable({
+  products,
+  page,
+  limit,
+  total,
+  isLoading,
+  onEdit,
+  onDelete,
+  onPageChange,
+}) {
+  const totalPages = Math.max(1, Math.ceil((total || 0) / limit));
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/50">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+          <thead className="bg-slate-50 dark:bg-slate-900/80">
+            <tr className="text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-300">
+              <th className="px-4 py-3">Product</th>
+              <th className="px-4 py-3">Price</th>
+              <th className="px-4 py-3">Stock</th>
+              <th className="px-4 py-3">Category</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-sm dark:divide-slate-900">
+            {isLoading ? (
+              <tr>
+                <td className="px-4 py-8 text-center text-slate-500" colSpan={6}>
+                  Loading products...
+                </td>
+              </tr>
+            ) : !products.length ? (
+              <tr>
+                <td className="px-4 py-8 text-center text-slate-500" colSpan={6}>
+                  No products found.
+                </td>
+              </tr>
+            ) : (
+              products.map((product) => (
+                <tr key={product.id} className="group hover:bg-slate-50/70 dark:hover:bg-slate-900/40">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900">
+                        {product.thumbnail_url || product.primary_image_url || product.primary_image_storage_path || product.images?.[0]?.url ? (
+                          <img
+                            src={product.thumbnail_url || product.primary_image_url || product.primary_image_storage_path || product.images?.[0]?.url}
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs text-slate-400">N/A</div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800 dark:text-slate-100">{product.name}</p>
+                        <p className="text-xs text-slate-500">{product.slug}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-200">₹{Number(product.price || 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-200">{product.stock_qty ?? 0}</td>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-200">{product.category_name || "-"}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                        product.is_published
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                          : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      }`}
+                    >
+                      {product.is_published ? "Published" : "Draft"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2 opacity-100 md:opacity-0 md:transition group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(product.id)}
+                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(product.id)}
+                        className="rounded-md border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-900/60 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm dark:border-slate-800">
+        <p className="text-slate-500">
+          Page {page} of {totalPages} · {total} items
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 1 || isLoading}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700"
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            onClick={() => onPageChange(page + 1)}
+            disabled={page >= totalPages || isLoading}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
