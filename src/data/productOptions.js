@@ -18,6 +18,8 @@ export const collectionOptions = [
   { id: "col_bangles", name: "Bangles" },
   { id: "col_nose_pin", name: "Nose Pin" },
   { id: "col_full_set", name: "Full Set" },
+  { id: "col_rakodi", name: "Rakodi" },
+  { id: "col_nethichutty", name: "Nethichutty" },
 ];
 
 
@@ -32,6 +34,8 @@ export const categoryCollectionMap = {
     "col_bangles",
     "col_nose_pin",
     "col_full_set",
+    "col_rakodi",
+    "col_nethichutty",
   ],
   cat_black_antique_margam: [
     "col_necklace",
@@ -43,6 +47,8 @@ export const categoryCollectionMap = {
     "col_bangles",
     "col_nose_pin",
     "col_full_set",
+    "col_rakodi",
+    "col_nethichutty",
   ],
   cat_silver_temple: [
     "col_necklace",
@@ -76,6 +82,8 @@ export const categoryCollectionMap = {
     "col_bangles",
     "col_nose_pin",
     "col_full_set",
+    "col_rakodi",
+    "col_nethichutty",
   ],
   cat_salangai: [],
   cat_repairs_services: [],
