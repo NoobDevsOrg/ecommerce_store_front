@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { getToken } from "../../lib/auth";
 import { getCart } from "../../store/cartStore";
 import AdminSidebar from "./AdminSidebar";
+import { api } from "lib/api";
 
 export default function Header() {
   const [cartCount, setCartCount] = useState(0);
@@ -18,6 +19,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [enquiryCount, setEnquiryCount] = useState(0);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("theme");
@@ -99,6 +101,37 @@ export default function Header() {
     // Notify other components that user state has changed
     window.dispatchEvent(new Event("userUpdated"));
   };
+
+  useEffect(() => {
+    if (!isAdminAuthenticated) return;
+
+    let intervalId;
+
+    const fetchEnquiryCount = async () => {
+      try {
+        const res = await api.get("/products/enquiries/count?status=new");
+        console.log("notif res count header", res)
+        setEnquiryCount(res?.data?.count || 0);
+      } catch (err) {
+        console.error("Failed to fetch enquiry count", err?.message);
+      }
+    };
+
+    // initial load
+    fetchEnquiryCount();
+
+    // polling every 10s
+    intervalId = setInterval(fetchEnquiryCount, 10000);
+
+    // listen for manual refresh events (after status update)
+    const handleRefresh = () => fetchEnquiryCount();
+    window.addEventListener("enquiryUpdated", handleRefresh);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("enquiryUpdated", handleRefresh);
+    };
+  }, [isAdminAuthenticated]);
 
   const handleSearch = (event) => {
     event.preventDefault();
@@ -245,7 +278,33 @@ export default function Header() {
                 </Link>
               )}
             </div>
+            {isAdminAuthenticated && (
+              <button
+                onClick={() => router.push("/admin/enquiries")}
+                className="relative group p-2"
+                aria-label="View enquiries"
+              >
+                <svg
+                  className="w-6 h-6 text-stone-200 group-hover:text-[#d4af37] transition-colors"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0018 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 00-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+                  />
+                </svg>
 
+                {enquiryCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center px-1 bg-red-500 text-[10px] font-bold text-white rounded-full ring-2 ring-[#0c0816]">
+                    {enquiryCount > 99 ? "99+" : enquiryCount}
+                  </span>
+                )}
+              </button>
+            )}
             {/* Cart */}
             <Link href="/cart" className="relative group p-2">
               <svg

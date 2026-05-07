@@ -15,7 +15,7 @@ if (typeof window !== "undefined") {
 }
 const getProductImage = (product) => {
   if (!product?.image_urls?.length) return "/placeholder-jewelry.jpg";
-
+  console.log("getProductImage, products", product)
   // 1. Best Seller image
   const bestSell = product.image_urls.find(
     (img) => img.is_best_sell && img.is_primary
@@ -34,7 +34,8 @@ const getProductImage = (product) => {
 // ── Individual Track Card ──────────────────────────────────────────────
 function TrackCard({ product }) {
   const [hovered, setHovered] = useState(false);
-  console.log("TrackCardproduct", product);
+  // console.log("TrackCardproduct", product);
+  const imageUrl = getProductImage(product);
   return (
     <div
       className="relative flex-shrink-0 w-[260px] md:w-[300px] group cursor-pointer"
@@ -60,7 +61,9 @@ function TrackCard({ product }) {
               fill
               className="object-cover"
               sizes="300px"
+              unoptimized
             />
+
           </div>
 
           {/* Gold gradient on hover */}

@@ -1,7 +1,7 @@
 import { clearAuthSession, getRefreshToken, getTenantId, getToken, setAuthSession } from "./auth";
 
-const API_BASE_URL = "https://ecommerce-api-rgf0.onrender.com";
-// const API_BASE_URL =  "http://localhost:5000";
+// const API_BASE_URL = "https://ecommerce-api-rgf0.onrender.com";
+const API_BASE_URL = "http://localhost:5000";
 
 let refreshPromise = null;
 
@@ -179,7 +179,11 @@ function createQueryString(params = {}) {
 }
 
 export const api = {
-  get: (path, options) => request(path, { ...options, method: "GET" }),
+  get: (path, options = {}) => {
+    const { params, ...rest } = options || {};
+    const query = params ? createQueryString(params) : "";
+    return request(`${path}${query}`, { ...rest, method: "GET" });
+  },
   post: (path, body, options) => request(path, { ...options, method: "POST", body }),
   put: (path, body, options) => request(path, { ...options, method: "PUT", body }),
   delete: (path, options) => request(path, { ...options, method: "DELETE" }),
