@@ -1,7 +1,7 @@
 import { clearAuthSession, getRefreshToken, getTenantId, getToken, setAuthSession } from "./auth";
 
-// const API_BASE_URL = "https://ecommerce-api-rgf0.onrender.com";
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "https://ecommerce-api-rgf0.onrender.com";
+// const API_BASE_URL = "http://localhost:5000";
 
 let refreshPromise = null;
 
