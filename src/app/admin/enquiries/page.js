@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "../../../lib/api";
 
@@ -441,7 +441,7 @@ function PaginationBtn({ onClick, disabled, label, active, title }) {
 // State setters only update the ref + trigger the effect via a single counter.
 // This eliminates ALL stale-closure, competing-effect, and re-render-loop bugs.
 
-export default function AdminEnquiriesPage() {
+function AdminEnquiriesPageInner() {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -799,5 +799,24 @@ export default function AdminEnquiriesPage() {
         <EnquiryDetailModal enquiry={modalEnquiry} onClose={() => setModalEnquiry(null)} />
       )}
     </div>
+  );
+}
+// ─── Suspense wrapper (required for useSearchParams in Next.js App Router) ────
+
+export default function AdminEnquiriesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0c0816] flex items-center justify-center">
+        <div className="flex items-center gap-3 text-stone-500 text-sm">
+          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
+          Loading enquiries…
+        </div>
+      </div>
+    }>
+      <AdminEnquiriesPageInner />
+    </Suspense>
   );
 }
