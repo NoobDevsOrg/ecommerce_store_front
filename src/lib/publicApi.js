@@ -3,8 +3,8 @@
  * Used for product listing and detail pages (no auth required)
  */
 
-const BASE_URL = "http://localhost:5000";
-// const BASE_URL = "https://ecommerce-api-rgf0.onrender.com";;
+//const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://ecommerce-api-rgf0.onrender.com";;
 
 export class PublicApiError extends Error {
   constructor(message, status, payload) {
