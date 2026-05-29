@@ -160,3 +160,25 @@ These are currently static dummy values and can later be replaced by API-fetched
 3. Introduce category/collection helper APIs and map dropdown values from those APIs.
 4. Add server persistence for uploaded images (S3/Cloudinary/etc.) and replace local preview URLs.
 5. Add unit tests for helper and form logic.
+
+# Enquiry Modal
+
+Product Details → Enquiry Now → Enquiry Modal → Submit
+
+1. Add new page for enquiry list view in admin.
+     `src/app/admin/products/enquiries/page.js`
+
+2. create two new hooks
+      1. `src/components/hooks/useEnquiries`
+      2. `src/components/hooks/useEnquiryCount`
+
+3. API Endpoint for Enquiries:
+     `/products/enquiries` (for listing enquiries and filtering with status, product_name)
+     
+
+
+
+
+
+
+
