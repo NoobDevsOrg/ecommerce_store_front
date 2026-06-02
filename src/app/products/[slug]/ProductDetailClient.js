@@ -225,7 +225,7 @@ export default function ProductDetailPage({ product }) {
                         </Link>
 
                         {/* Created Date */}
-                        {/* {product.created_at && (
+                        {/* {product.reated_at && (
               <p className="text-stone-500 text-xs mt-8">
                 Added on {new Date(product.created_at).toLocaleDateString("en-IN")}
               </p>
