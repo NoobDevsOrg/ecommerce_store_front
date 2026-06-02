@@ -11,6 +11,11 @@ export const metadata = {
     template: "%s | Sagunthala Jewellers",
   },
 
+  robots: {
+    index: true,
+    follow: true,
+  },
+
   description:
     "Discover divine temple jewellery, premium gold, and diamond collections at Sagunthala Jewellers. Handcrafted heritage pieces for the modern woman.",
 
@@ -56,11 +61,11 @@ export default function RootLayout({ children }) {
         className="bg-slate-50 text-slate-900 antialiased transition-colors selection:bg-amber-300/40 selection:text-amber-900 dark:bg-[#0f1115] dark:text-slate-100 dark:selection:bg-amber-700/40 dark:selection:text-amber-200"
         suppressHydrationWarning
       >
-        
+
 
         {/* Subtle Global Grain Texture Overlay */}
         <div className="fixed inset-0 pointer-events-none z-[999] opacity-[0.01] dark:opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
-        
+
         {/* Decorative Top Glow */}
         <div className="fixed top-0 left-1/2 -translate-x-1/2 h-[500px] w-full max-w-[1000px] rounded-full bg-amber-300/20 blur-[120px] pointer-events-none z-0 dark:bg-[#b48a3c]/5"></div>
 
@@ -74,7 +79,7 @@ export default function RootLayout({ children }) {
           <Footer />
         </div>
 
-      
+
       </body>
     </html>
   );

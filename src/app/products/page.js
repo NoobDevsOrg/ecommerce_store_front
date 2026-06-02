@@ -633,15 +633,15 @@ const ProductCard = ({ product, index, onEnquiry }) => {
                         <span className="text-xs text-stone-400">{product.reviewCount || 0} reviews</span>
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-2 pt-2">
-                    {/* "Add to Cart" replaced with "Add Enquiry" */}
+                <div className="flex gap-2 pt-2">
                     <button
                         onClick={() => onEnquiry(product.id, product.name)}
-                        className="flex-1 rounded-lg border border-[#b48a3c] px-3 py-2 text-sm text-[#b48a3c] hover:bg-[#b48a3c] hover:text-[#0f0a1a] transition-all duration-200 font-medium"
+                        className="whitespace-nowrap rounded-lg border border-[#b48a3c] px-3 py-2 text-xs text-[#b48a3c] hover:bg-[#b48a3c] hover:text-[#0f0a1a] transition-all duration-200 font-medium"
                     >
-                        Enquiry Now
+                        Get a Quote
                     </button>
-                    <button className="flex-1 rounded-lg border border-stone-700 px-3 py-2 text-sm text-stone-300 hover:border-[#b48a3c] hover:text-[#b48a3c] transition-all duration-200">
+
+                    <button className="whitespace-nowrap rounded-lg border border-stone-700 px-3 py-2 text-sm text-stone-300 hover:border-[#b48a3c] hover:text-[#b48a3c] transition-all duration-200">
                         Wishlist
                     </button>
                 </div>
@@ -942,8 +942,7 @@ export default function ProductsListingPage() {
             </section>
 
             {/* Main Content */}
-            <section className="mx-auto grid max-w-[1440px] grid-cols-1 gap-8 px-4 sm:px-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-8 py-8">
-                {/* Filters Sidebar */}
+            <section className="mx-auto grid max-w-[1440px] grid-cols-1 gap-8 px-4 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8 py-8">    {/* Filters Sidebar */}
                 <aside className={`${showFilters ? "block" : "hidden"} lg:block rounded-2xl border border-stone-800 bg-[#11101a] p-6 shadow-xl`}>
                     <h2 className="text-lg font-semibold uppercase text-stone-200 tracking-wider mb-6 flex items-center">
                         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -961,7 +960,7 @@ export default function ProductsListingPage() {
                                     <p className="text-sm text-stone-500">No categories available</p>
                                 ) : (
                                     categories.map((category) => (
-                                        <label key={category} className="flex items-center gap-3 text-sm text-stone-200 hover:text-white cursor-pointer group">
+                                        <label key={category} className="flex items-center gap-3 text-xs text-stone-200 hover:text-white cursor-pointer group">
                                             <input
                                                 type="checkbox"
                                                 checked={categoryFilter.includes(category)}
