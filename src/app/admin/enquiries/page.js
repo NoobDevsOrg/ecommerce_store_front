@@ -182,9 +182,31 @@ function EnquiryDetailModal({ enquiry, onClose }) {
             </div>
 
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-stone-500 mb-1.5">Product</p>
-              <div className="rounded-lg bg-[#1b1728] border border-stone-800 px-4 py-3 text-sm text-stone-200">
-                {enquiry.product_name || "—"}
+              <p className="text-[10px] uppercase tracking-widest text-stone-500 mb-1.5">
+                Products
+              </p>
+
+              <div className="rounded-lg bg-[#1b1728] border border-stone-800 px-4 py-3">
+                {enquiry.products?.length ? (
+                  <div className="space-y-3">
+                    {enquiry.products.map((product) => (
+                      <div
+                        key={product.product_id}
+                        className="flex justify-between items-center"
+                      >
+                        <span className="text-sm text-stone-200">
+                          {product.product_name}
+                        </span>
+
+                        <span className="text-xs text-[#b48a3c]">
+                          Qty: {product.quantity}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-stone-500">—</span>
+                )}
               </div>
             </div>
 
@@ -365,10 +387,28 @@ function EnquiryRow({ item, onViewDetails, onStatusChange, isUpdating }) {
           </div>
         )}
       </td>
-      <td className="px-4 py-3.5 max-w-[140px]">
-        <span className="text-stone-300 text-xs block truncate" title={item.product_name}>
-          {item.product_name || "—"}
-        </span>
+      <td className="px-4 py-3.5 max-w-[220px]">
+        {item.products?.length ? (
+          <div className="space-y-1">
+            {item.products.slice(0, 2).map((p) => (
+              <div
+                key={p.product_id}
+                className="text-xs text-stone-300 truncate"
+                title={p.product_name}
+              >
+                {p.product_name} × {p.quantity}
+              </div>
+            ))}
+
+            {item.products.length > 2 && (
+              <div className="text-[10px] text-[#b48a3c]">
+                +{item.products.length - 2} more
+              </div>
+            )}
+          </div>
+        ) : (
+          <span className="text-stone-600">—</span>
+        )}
       </td>
       <td className="px-4 py-3.5 max-w-[200px]">
         {item.message ? (
@@ -533,26 +573,16 @@ function AdminEnquiriesPageInner() {
 
         console.log("API RESPONSE:", res.data); // debug
 
-        const payload = res?.data;
-        console.log("payload data", payload)
-        // Step 1: basic validation
-        if (!payload || !payload.data) {
-          throw new Error("Invalid response structure");
-        }
+        setRows(res.data.data || []);
 
-        const d = payload.data;
-        console.log("gahgsvhgac data d", d)
-        // Step 2: safe extraction
-        const rows = d || [];
-        const pagination = payload.pagination || {
-          total: 0,
-          page: 1,
-          limit: 20,
-          totalPages: 1,
-        };
-
-        setRows(rows);
-        setPagination(pagination);
+        setPagination(
+          res.data.pagination || {
+            total: 0,
+            page: 1,
+            limit: 20,
+            totalPages: 1,
+          }
+        );
       })
       .catch((err) => {
         if (cancelled) return;

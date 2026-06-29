@@ -5,6 +5,7 @@ import Link from "next/link";
 import Select from "react-select";
 import { getPublicProducts } from "../../lib/publicApi";
 import { api } from "../../lib/api";
+import { addToCart } from "../../store/cartStore";
 
 // ─── Enquiry Modal ────────────────────────────────────────────────────────────
 
@@ -111,9 +112,15 @@ function FloatingTextarea({ id, label, value, onChange, disabled }) {
     );
 }
 
-const EMPTY_FORM = { name: "", email: "", phone: "", message: "", useWhatsApp: false, whatsappNumber: "" };
+const EMPTY_FORM = {
+    name: "", email: "", phone: "", message: "", useWhatsApp: false, whatsappNumber: "", useWhatsApp: false,
+    whatsappNumber: "",
+    products: [],
+};
 
-function EnquiryModal({ isOpen, onClose, productId, productName }) {
+function EnquiryModal({ isOpen, onClose, productId, productName, products = [],
+    onRemove,
+    onSuccess, }) {
     const [form, setForm] = useState(EMPTY_FORM);
     const [status, setStatus] = useState("idle"); // idle | loading | success | error
     const [fieldErrors, setFieldErrors] = useState({});
@@ -126,10 +133,13 @@ function EnquiryModal({ isOpen, onClose, productId, productName }) {
     useEffect(() => {
         if (isOpen) {
             setMounted(true);
-            requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+            requestAnimationFrame(() =>
+                requestAnimationFrame(() => setVisible(true))
+            );
             document.body.style.overflow = "hidden";
         } else {
             setVisible(false);
+
             const t = setTimeout(() => {
                 setMounted(false);
                 document.body.style.overflow = "";
@@ -138,10 +148,28 @@ function EnquiryModal({ isOpen, onClose, productId, productName }) {
                 setFieldErrors({});
                 setGlobalError("");
             }, 320);
+
             return () => clearTimeout(t);
         }
     }, [isOpen]);
+    useEffect(() => {
+        if (!isOpen) return;
 
+        if (productId) {
+            setForm({
+                ...EMPTY_FORM,
+                products: [
+                    {
+                        id: productId,
+                        name: productName,
+                        quantity: 1,
+                    },
+                ],
+            });
+        } else {
+            setForm(EMPTY_FORM);
+        }
+    }, [isOpen, productId, productName]);
     // ESC to close
     useEffect(() => {
         const handler = (e) => { if (e.key === "Escape" && isOpen) onClose(); };
@@ -196,11 +224,13 @@ function EnquiryModal({ isOpen, onClose, productId, productName }) {
                 email: form.email,
                 phone: form.phone,
                 message: form.message,
-                product_id: productId,
-                use_whatsapp: form.useWhatsApp,
+                products: form.products.map((item) => ({
+                    product_id: item.id,
+                    quantity: item.quantity || 1,
+                })),
                 whatsapp_number: form.useWhatsApp
                     ? (form.whatsappNumber || form.phone)
-                    : null
+                    : null,
             };
             const res = await api.post("/products/enquiry", enqData);
 
@@ -212,18 +242,13 @@ function EnquiryModal({ isOpen, onClose, productId, productName }) {
                 throw new Error("Invalid server response");
             }
 
-            const { success, message, data } = responseData;
-            console.log("success", success);
-            console.log("message", message);
-            console.log("data", data)
-
-            if (!success) {
-                throw new Error(message || "Submission failed");
+            if (responseData.statusCode !== 201) {
+                throw new Error(responseData.message);
             }
 
-            console.log("Enquiry ID:", data?.id);
-
             setStatus("success");
+
+            onSuccess?.();
 
         } catch (err) {
             console.error("ERROR:", err);
@@ -356,7 +381,12 @@ function EnquiryModal({ isOpen, onClose, productId, productName }) {
                             <p style={{ margin: "0 0 8px", color: "#b48a3c", fontSize: "10px", letterSpacing: "4px", textTransform: "uppercase" }}>Received</p>
                             <h3 style={{ margin: "0 0 12px", color: "#f5f0e8", fontSize: "18px", fontWeight: 400, fontFamily: "Georgia, serif" }}>Thank You</h3>
                             <p style={{ margin: "0 0 28px", color: "#7a7068", fontSize: "13px", lineHeight: 1.8 }}>
-                                We've received your enquiry for <span style={{ color: "#b48a3c" }}>{productName}</span>.<br />
+                                We've received your enquiry for
+                                <strong>
+                                    {" "}
+                                    {form.products.length} product
+                                    {form.products.length > 1 ? "s" : ""}
+                                </strong>.<br />
                                 Our team will reach out within 24 hours.
                             </p>
                             <button
@@ -593,6 +623,7 @@ const ProductCard = ({ product, index, onEnquiry }) => {
     const rating = Math.min(5, Math.max(0, Number(product.rating || product.star_rating || 0)));
     const inStock = Number(product.stock_qty || product.stock || product.inventory || 0) > 0;
 
+
     return (
         <article
             className="group overflow-hidden rounded-2xl border border-stone-800 bg-[#11101a] transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#b48a3c]/20 hover:border-[#b48a3c]/50 animate-fade-in"
@@ -641,8 +672,11 @@ const ProductCard = ({ product, index, onEnquiry }) => {
                         Get a Quote
                     </button>
 
-                    <button className="whitespace-nowrap rounded-lg border border-stone-700 px-3 py-2 text-sm text-stone-300 hover:border-[#b48a3c] hover:text-[#b48a3c] transition-all duration-200">
-                        Wishlist
+                    <button
+                        onClick={() => addToCart(product)}
+                        disabled={product.stock_qty <= 0}
+                        className="whitespace-nowrap rounded-lg border border-stone-700 px-3 py-2 text-sm text-stone-300 hover:border-[#b48a3c] hover:text-[#b48a3c] transition-all duration-200">
+                        Add to Cart
                     </button>
                 </div>
             </div>
@@ -677,6 +711,7 @@ export default function ProductsListingPage() {
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(12);
+    const [portalTarget, setPortalTarget] = useState(null);
 
     const selectStyles = {
         control: (base, state) => ({
@@ -730,6 +765,10 @@ export default function ProductsListingPage() {
             }
         };
         fetchProducts();
+    }, []);
+
+    useEffect(() => {
+        setPortalTarget(document.body);
     }, []);
 
     const categories = useMemo(() => {
@@ -916,7 +955,7 @@ export default function ProductsListingPage() {
                                         value={sortSelectOptions.find((option) => option.value === sortOption) || null}
                                         options={sortSelectOptions}
                                         styles={selectStyles}
-                                        menuPortalTarget={typeof window !== "undefined" ? document.body : null}
+                                        menuPortalTarget={portalTarget}
                                         onChange={(option) => setSortOption(option?.value || "newest")}
                                     />
                                 </div>
@@ -928,7 +967,7 @@ export default function ProductsListingPage() {
                                         value={itemsPerPageOptions.find((option) => option.value === itemsPerPage) || null}
                                         options={itemsPerPageOptions}
                                         styles={selectStyles}
-                                        menuPortalTarget={typeof window !== "undefined" ? document.body : null}
+                                        menuPortalTarget={portalTarget}
                                         onChange={(option) => {
                                             setItemsPerPage(Number(option?.value || 12));
                                             setCurrentPage(1);
@@ -1010,7 +1049,7 @@ export default function ProductsListingPage() {
                                 value={ratingOptions.find((option) => option.value === ratingFilter) || null}
                                 options={ratingOptions}
                                 styles={selectStyles}
-                                menuPortalTarget={typeof window !== "undefined" ? document.body : null}
+                                menuPortalTarget={portalTarget}
                                 onChange={(option) => setRatingFilter(Number(option?.value || 0))}
                             />
                         </div>

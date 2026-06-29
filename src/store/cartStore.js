@@ -32,3 +32,9 @@ export function updateCartQuantity(productId, quantity) {
 
   saveCart(cart);
 }
+
+// 🆕 ADD THIS FUNCTION
+export function clearCart() {
+  localStorage.removeItem("cart");
+  window.dispatchEvent(new Event("cartUpdated"));
+}

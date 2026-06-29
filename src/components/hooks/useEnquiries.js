@@ -14,6 +14,7 @@ async function apiFetch(path, options = {}) {
 }
 
 export function useEnquiries() {
+    console.log("API BASE ------------------------------", API_BASE);
     const [enquiries, setEnquiries] = useState([]);
     const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
     const [isLoading, setIsLoading] = useState(true);
@@ -44,9 +45,11 @@ export function useEnquiries() {
                 ...(debouncedSearch && { search: debouncedSearch }),
                 ...(status !== "all" && { status }),
             });
-            const json = await apiFetch(`/enquiries?${params}`);
-            setEnquiries(json.data);
-            setPagination(json.pagination);
+            const json = await apiFetch(`/products/enquiries?${params}`);
+            console.log("Enquiry API Response:", json);
+
+            setEnquiries(json.data.data);
+            setPagination(json.data.pagination);
         } catch (err) {
             setError(err.message || "Failed to load enquiries");
         } finally {
@@ -63,8 +66,8 @@ export function useEnquiries() {
             prev.map((e) => (e.id === id ? { ...e, status: newStatus } : e))
         );
         try {
-            await apiFetch(`/enquiries/${id}/status`, {
-                method: "PATCH",
+            await apiFetch(`/products/enquiries/${id}/status`, {
+                method: "PUT",   // ✅ match the route
                 body: JSON.stringify({ status: newStatus }),
             });
         } catch (err) {

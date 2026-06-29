@@ -16,7 +16,8 @@ export function useNewEnquiryCount() {
             if (!res.ok) return;
             const json = await res.json();
             console.log("aaaaa json", json)
-            setCount(json.count ?? 0);
+            // setCount(json.count ?? 0);
+            setCount(json.data?.count ?? 0);
         } catch {
             // Silently fail — badge just won't update
         }

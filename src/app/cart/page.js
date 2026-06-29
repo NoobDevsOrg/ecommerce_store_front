@@ -5,12 +5,16 @@ import Link from "next/link";
 import {
     getCart,
     removeFromCart,
-    updateCartQuantity
+    updateCartQuantity,
+    clearCart
 } from "../../store/cartStore";
 import { getPublicProductById } from "../../lib/publicApi";
+import EnquiryModal from "../../components/product/ProductEnquiry";
 
 export default function CartPage() {
     const [cartItems, setCartItems] = useState([]);
+    const [enquiryProducts, setEnquiryProducts] = useState([]);
+    const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
 
     const loadCart = async () => {
         const cart = getCart();
@@ -35,6 +39,14 @@ export default function CartPage() {
         return () => window.removeEventListener("cartUpdated", loadCart);
     }, []);
 
+    const handleEnquirySuccess = () => {
+        clearCart();
+
+        setTimeout(() => {
+            setIsEnquiryOpen(false);
+        }, 1500);
+    };
+
     const total = cartItems.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
@@ -43,7 +55,7 @@ export default function CartPage() {
     return (
         <div className="bg-[#0f0a1a] min-h-screen text-stone-200 py-16 md:py-24">
             <div className="max-w-[1280px] mx-auto px-6 md:px-10">
-                
+
                 {/* Header Section */}
                 <div className="flex flex-col items-center mb-16 text-center">
                     <span className="text-[10px] uppercase tracking-[0.5em] text-[#b48a3c] font-bold mb-4">
@@ -58,7 +70,7 @@ export default function CartPage() {
                 {cartItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 border border-dashed border-stone-800 rounded-2xl">
                         <p className="text-stone-500 font-serif italic text-xl mb-8">Your treasury is currently empty.</p>
-                        <Link 
+                        <Link
                             href="/products"
                             className="px-10 py-4 bg-[#b48a3c] text-[#0f0a1a] text-[11px] uppercase tracking-[0.3em] font-black hover:bg-white transition-all duration-500 rounded-sm"
                         >
@@ -67,7 +79,6 @@ export default function CartPage() {
                     </div>
                 ) : (
                     <div className="grid lg:grid-cols-12 gap-12 items-start">
-                        
                         {/* Cart Items List */}
                         <div className="lg:col-span-8 space-y-6">
                             {cartItems.map(item => (
@@ -77,7 +88,7 @@ export default function CartPage() {
                                 >
                                     <div className="relative w-32 h-40 md:w-40 md:h-48 overflow-hidden rounded-lg bg-[#0f0a1a] border border-stone-800">
                                         <img
-                                            src={item.images[0]}
+                                            src={item.image_01}
                                             alt={item.name}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                                         />
@@ -139,7 +150,7 @@ export default function CartPage() {
                         <aside className="lg:col-span-4 lg:sticky lg:top-32">
                             <div className="bg-[#1a1425] border border-stone-800 p-8 rounded-2xl shadow-2xl">
                                 <h2 className="text-[12px] uppercase tracking-[0.3em] font-bold text-white mb-8">Summary</h2>
-                                
+
                                 <div className="space-y-4 border-b border-stone-800 pb-8 mb-8 text-sm text-stone-400">
                                     <div className="flex justify-between tracking-wide">
                                         <span>Subtotal</span>
@@ -162,10 +173,16 @@ export default function CartPage() {
                                     </span>
                                 </div>
 
-                                <button className="w-full relative group overflow-hidden bg-[#b48a3c] py-5 px-10 rounded-sm transition-all duration-500 active:scale-[0.98]">
+                                <button
+                                    onClick={() => {
+                                        setEnquiryProducts(cartItems);
+                                        setIsEnquiryOpen(true);
+                                    }}
+                                    className="w-full relative group overflow-hidden bg-[#b48a3c] py-5 px-10 rounded-sm transition-all duration-500 active:scale-[0.98]"
+                                >
                                     <div className="absolute inset-0 bg-gradient-to-r from-[#b48a3c] via-[#d4af37] to-[#b48a3c] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                     <span className="relative z-10 text-[#0f0a1a] text-[12px] uppercase tracking-[0.3em] font-black">
-                                        Secure Checkout
+                                        Get a Quote
                                     </span>
                                 </button>
 
@@ -182,6 +199,28 @@ export default function CartPage() {
                     </div>
                 )}
             </div>
+            {/* Enquiry Modal */}
+
+            <EnquiryModal
+                isOpen={isEnquiryOpen}
+                onClose={() => setIsEnquiryOpen(false)}
+                products={enquiryProducts}
+                onRemove={(id) => {
+                    removeFromCart(id);
+
+                    const updated = enquiryProducts.filter(p => p.id !== id);
+
+                    setEnquiryProducts(updated);
+
+                    if (updated.length === 0) {
+                        setIsEnquiryOpen(false);
+                    }
+
+                    loadCart();
+                }}
+                onSuccess={handleEnquirySuccess}
+            />
+
         </div>
     );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useEnquiry } from "@/hooks/useEnquiry";
+import { useEnquiry } from "../hooks/useEnquiry";
 
 // ─── FloatingInput ────────────────────────────────────────────────────────────
 
@@ -125,16 +125,29 @@ const INITIAL_FORM = {
     email: "",
     phone: "",
     message: "",
-    productId: "",
-    productName: "",
+    products: [],
     useWhatsApp: false,
     whatsappNumber: "",
 };
 
-export default function EnquiryModal({ isOpen, onClose, productId, productName }) {
+export default function EnquiryModal({ isOpen, onClose, productId, productName, products = [], onRemove, onSuccess }) {
     const { status, errorMessage, fieldErrors, submit, reset } = useEnquiry();
 
-    const [form, setForm] = useState({ ...INITIAL_FORM, productId, productName });
+    const [form, setForm] = useState({
+        ...INITIAL_FORM,
+        products:
+            products.length > 0
+                ? products
+                : productId
+                    ? [
+                        {
+                            id: productId,
+                            name: productName,
+                            quantity: 1,
+                        },
+                    ]
+                    : [],
+    });
     const [visible, setVisible] = useState(false);
     const [mounted, setMounted] = useState(false);
     const overlayRef = useRef(null);
@@ -149,23 +162,26 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName }
 
     // Animation lifecycle
     useEffect(() => {
-        if (isOpen) {
-            setMounted(true);
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => setVisible(true));
-            });
-            document.body.style.overflow = "hidden";
-        } else {
-            setVisible(false);
-            const t = setTimeout(() => {
-                setMounted(false);
-                document.body.style.overflow = "";
-                setForm({ ...INITIAL_FORM, productId, productName });
-                reset();
-            }, 350);
-            return () => clearTimeout(t);
+        if (!isOpen) return;
+
+        if (products.length > 0) {
+            setForm((prev) => ({
+                ...prev,
+                products,
+            }));
+        } else if (productId) {
+            setForm((prev) => ({
+                ...prev,
+                products: [
+                    {
+                        id: productId,
+                        name: productName,
+                        quantity: 1,
+                    },
+                ],
+            }));
         }
-    }, [isOpen]);
+    }, [isOpen, products, productId, productName]);
 
     // ESC key to close
     useEffect(() => {
@@ -175,6 +191,18 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName }
         document.addEventListener("keydown", handleKey);
         return () => document.removeEventListener("keydown", handleKey);
     }, [isOpen, onClose]);
+
+    useEffect(() => {
+        if (isOpen) {
+            setMounted(true);
+            const t = setTimeout(() => setVisible(true), 10);
+            return () => clearTimeout(t);
+        } else {
+            setVisible(false);
+            const t = setTimeout(() => setMounted(false), 350);
+            return () => clearTimeout(t);
+        }
+    }, [isOpen]);
 
     // Auto-focus first input
     useEffect(() => {
@@ -194,14 +222,110 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName }
         return (value) => setForm((prev) => ({ ...prev, [key]: value }));
     }
 
-    async function handleSubmit(e) {
-        e.preventDefault();
-        if (status === "loading" || status === "success") return;
-        await submit(form);
+    function validate() {
+        const errors = {};
+
+        // Name — must have at least 2 real characters (not just spaces)
+        const trimmedName = form.name.trim();
+        if (!trimmedName) {
+            errors.name = "Full name is required";
+        } else if (trimmedName.length < 2) {
+            errors.name = "Name must be at least 2 characters";
+        }
+
+        // Email — require valid format with 2+ char TLD
+        const trimmedEmail = form.email.trim();
+        if (!trimmedEmail) {
+            errors.email = "Email address is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmedEmail)) {
+            errors.email = "Enter a valid email address";
+        }
+
+        // Phone — strip spaces, dashes, +91 prefix, then check 10 digits
+        const rawPhone = form.phone.trim();
+        if (!rawPhone) {
+            errors.phone = "Phone number is required";
+        } else {
+            const digitsOnly = rawPhone.replace(/[\s\-().+]/g, "");
+            // Strip country code if present (91 prefix making it 12 digits)
+            const normalized = digitsOnly.length === 12 && digitsOnly.startsWith("91")
+                ? digitsOnly.slice(2)
+                : digitsOnly.length === 13 && digitsOnly.startsWith("091")
+                    ? digitsOnly.slice(3)
+                    : digitsOnly;
+            if (!/^\d{10}$/.test(normalized)) {
+                errors.phone = "Enter a valid 10-digit phone number";
+            }
+        }
+
+        // WhatsApp — same normalization as phone
+        if (form.useWhatsApp) {
+            const rawWa = form.whatsappNumber.trim();
+            if (!rawWa) {
+                errors.whatsappNumber = "WhatsApp number is required";
+            } else {
+                const digitsOnly = rawWa.replace(/[\s\-().+]/g, "");
+                const normalized = digitsOnly.length === 12 && digitsOnly.startsWith("91")
+                    ? digitsOnly.slice(2)
+                    : digitsOnly.length === 13 && digitsOnly.startsWith("091")
+                        ? digitsOnly.slice(3)
+                        : digitsOnly;
+                if (!/^\d{10}$/.test(normalized)) {
+                    errors.whatsappNumber = "Enter a valid 10-digit WhatsApp number";
+                }
+            }
+        }
+
+        return errors;
     }
 
+    const [localErrors, setLocalErrors] = useState({});
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+
+        if (status === "loading" || status === "success") return;
+
+        const errors = validate();
+        if (Object.keys(errors).length > 0) {
+            setLocalErrors(errors);
+            return;
+        }
+
+        setLocalErrors({});
+
+        const payload = {
+            ...form,
+            products: form.products.map((item) => ({
+                product_id: item.id,
+                quantity: item.quantity || 1,
+            })),
+            whatsapp_number: form.useWhatsApp ? form.whatsappNumber : null,
+        };
+
+        const result = await submit(payload);
+
+        if (result?.success) {
+            onSuccess?.();
+        }
+    }
+    const handleRemove = (id) => {
+        onRemove(id);
+        if (form.products.length === 1) {
+            onClose();
+        }
+    };
     function getFieldError(field) {
-        return fieldErrors[field] ? fieldErrors[field][0] : undefined;
+        // Check local (client-side) errors first, then server fieldErrors
+        // Normalise both camelCase and snake_case keys
+        const camel = field.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+        const snake = field.replace(/([A-Z])/g, (c) => `_${c.toLowerCase()}`);
+
+        const local = localErrors[camel] || localErrors[snake] || localErrors[field];
+        if (local) return local;
+
+        const server = fieldErrors[camel] || fieldErrors[snake] || fieldErrors[field];
+        return server ? server[0] : undefined;
     }
 
     if (!mounted) return null;
@@ -304,7 +428,6 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName }
                     </div>
 
                     <div style={{ height: "1px", background: "#1e1c18", margin: "0 40px" }} />
-
                     {/* ── SUCCESS STATE ── */}
                     {status === "success" ? (
                         <div style={{ padding: "48px 40px 52px", textAlign: "center" }}>
@@ -329,8 +452,11 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName }
                             <p style={{ margin: "0 0 10px", color: "#c9a96e", fontSize: "10px", letterSpacing: "4px", textTransform: "uppercase" }}>Received</p>
                             <h3 style={{ margin: "0 0 14px", color: "#f5f0e8", fontSize: "20px", fontWeight: 400, fontFamily: "Georgia, serif" }}>Thank You</h3>
                             <p style={{ margin: "0 0 32px", color: "#7a7068", fontSize: "13px", lineHeight: 1.8 }}>
-                                We've received your enquiry for{" "}
-                                <span style={{ color: "#c9a96e" }}>{productName}</span>.
+                                We've received your enquiry for
+                                <span style={{ color: "#c9a96e" }}>
+                                    {form.products.length} product
+                                    {form.products.length > 1 ? "s" : ""}
+                                </span>.
                                 <br />Our team will reach out within 24 hours.
                             </p>
                             <button
@@ -356,6 +482,65 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName }
                         /* ── FORM ── */
                         <form onSubmit={handleSubmit} noValidate>
                             <div style={{ padding: "32px 40px 0", display: "flex", flexDirection: "column", gap: "28px" }}>
+
+                                <div
+                                    style={{
+                                        marginBottom: "28px",
+                                        border: "1px solid #2a2520",
+                                        padding: "18px",
+                                    }}
+                                >
+                                    <p
+                                        style={{
+                                            color: "#c9a96e",
+                                            fontSize: "11px",
+                                            letterSpacing: "3px",
+                                            textTransform: "uppercase",
+                                            marginBottom: "14px",
+                                        }}
+                                    >
+                                        Selected Products
+                                    </p>
+
+                                    {form.products.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                marginBottom: "12px",
+                                            }}
+                                        >
+                                            <div>
+                                                <div style={{ color: "#f5f0e8" }}>{item.name}</div>
+                                                <div
+                                                    style={{
+                                                        color: "#7a7068",
+                                                        fontSize: "12px",
+                                                    }}
+                                                >
+                                                    Qty: {item.quantity}
+                                                </div>
+                                            </div>
+
+                                            {onRemove && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemove(item.id)}
+                                                    style={{
+                                                        background: "none",
+                                                        border: "none",
+                                                        color: "#c0392b",
+                                                        cursor: "pointer",
+                                                    }}
+                                                >
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                                 <FloatingInput
                                     id="eq-name"
                                     label="Full Name"
@@ -449,7 +634,7 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName }
                                                 value={form.whatsappNumber}
                                                 onChange={setField("whatsappNumber")}
                                                 required
-                                                error={getFieldError("whatsapp_number")}
+                                                error={getFieldError("whatsappNumber")}
                                                 disabled={status === "loading"}
                                                 autoComplete="tel"
                                             />
