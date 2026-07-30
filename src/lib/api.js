@@ -1,7 +1,7 @@
 import { clearAuthSession, getRefreshToken, getTenantId, getToken, setAuthSession } from "./auth";
 
 const API_BASE_URL = "https://ecommerce-api-rgf0.onrender.com";
-//const API_BASE_URL = "http://localhost:5000";
+// const API_BASE_URL = "http://localhost:5000";
 
 let refreshPromise = null;
 
@@ -237,14 +237,14 @@ export const api = {
       approve: (reviewId) =>
         request(`/products/reviews/${reviewId}/approve`, { method: "PATCH" }),
       // API 5 — Public: reviews for a single product (used on the Product Details page)
-    updateStatus: (id, data) =>
+      updateStatus: (id, data) =>
         request(`/products/reviews/${id}/status`, { method: "PATCH", body: data }),
 
-    update: (id, data) =>
-    request(`/products/reviews/${id}`, {
-        method: "PATCH",
-        body: data,
-    }),
+      update: (id, data) =>
+        request(`/products/reviews/${id}`, {
+          method: "PATCH",
+          body: data,
+        }),
 
       listByProduct: (productId, params) =>
         request(`/products/${productId}/reviews${createQueryString(params)}`, { method: "GET", skipAuth: true }),
