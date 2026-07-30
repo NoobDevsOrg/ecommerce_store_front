@@ -301,6 +301,7 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName, 
                 quantity: item.quantity || 1,
             })),
             whatsapp_number: form.useWhatsApp ? form.whatsappNumber : null,
+            tenant_id: process.env.NEXT_PUBLIC_TENANT_ID || "t1",
         };
 
         const result = await submit(payload);

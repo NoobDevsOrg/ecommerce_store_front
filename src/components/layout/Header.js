@@ -13,7 +13,7 @@ export default function Header() {
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  const [adminSidebarOpen, setAdminSidebarOpen] = useState(true);
+const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -42,11 +42,12 @@ export default function Header() {
       setUser(storedUser);
     };
 
-    const syncAdminAuth = () => {
-      const isAuthed = Boolean(getToken());
-      setIsAdminAuthenticated(isAuthed);
-      setAdminSidebarOpen(isAuthed);
-    };
+   const syncAdminAuth = () => {
+    const isAuthed = Boolean(getToken());
+    setIsAdminAuthenticated(isAuthed);
+};
+
+
 
     const storedUser = JSON.parse(localStorage.getItem("user") || "null");
     setUser(storedUser);
@@ -201,7 +202,7 @@ export default function Header() {
                   Sagunthala
                 </h1>
                 <p className="text-[9px] uppercase tracking-[0.35em] text-[#b48a3c] font-semibold">
-                  Jewellers
+                  Dance Jewellers
                 </p>
               </div>
             </Link>

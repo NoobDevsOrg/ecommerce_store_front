@@ -9,6 +9,7 @@ const sidebarItems = [
     { label: "Client Details", href: "/admin/clients" },
     { label: "Order Details", href: "/admin/orders" },
     { label: "Enquiry Details", href: "/admin/enquiries" },
+    { label: "Review Management", href: "/admin/reviews" },
 ];
 
 export default function AdminSidebar({ open, setOpen }) {
@@ -24,12 +25,20 @@ export default function AdminSidebar({ open, setOpen }) {
             />
 
             <aside
-                className={`fixed left-0 z-20 flex w-64 flex-col 
-            border-r border-stone-800 bg-[#0c0816] text-white shadow-xl 
-            transition-transform duration-200 
-            top-[70px] h-[calc(100vh-70px)]
-            ${open ? "translate-x-0" : "-translate-x-full"}
-            `}
+           className={`
+    fixed
+    left-0
+    top-[70px]
+    h-[calc(100vh-70px)]
+    w-64
+    z-[999]
+    border-r border-stone-800
+    bg-[#0c0816]
+    text-white
+    shadow-xl
+    transition-transform duration-300
+    ${open ? "translate-x-0" : "-translate-x-full"}
+  `}
             >
                 <div className="flex items-center justify-between gap-2 border-b border-stone-700 p-5">
                     <div>
@@ -52,16 +61,22 @@ export default function AdminSidebar({ open, setOpen }) {
                     {sidebarItems.map((item) => {
                         const isActive = pathname === item.href;
                         return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`block rounded-2xl px-4 py-3 text-sm font-medium transition ${isActive
-                                    ? "bg-[#b48a3c] text-[#0c0816]"
-                                    : "text-stone-400 hover:bg-[#161022] hover:text-white"
-                                    }`}
-                            >
-                                {item.label}
-                            </Link>
+                           <Link
+     key={item.href}
+    href={item.href}
+    onClick={() => {
+        if (window.innerWidth < 768) {
+            setOpen(false);
+        }
+    }}
+    className={`block rounded-2xl px-4 py-3 text-sm font-medium transition ${
+        isActive
+            ? "bg-[#b48a3c] text-[#0c0816]"
+            : "text-stone-400 hover:bg-[#161022] hover:text-white"
+    }`}
+>
+    {item.label}
+</Link>
                         );
                     })}
                 </nav>

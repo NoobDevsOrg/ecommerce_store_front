@@ -1,7 +1,7 @@
 import { clearAuthSession, getRefreshToken, getTenantId, getToken, setAuthSession } from "./auth";
 
 const API_BASE_URL = "https://ecommerce-api-rgf0.onrender.com";
-// const API_BASE_URL = "http://localhost:5000";
+//const API_BASE_URL = "http://localhost:5000";
 
 let refreshPromise = null;
 
@@ -222,6 +222,37 @@ export const api = {
     public: {
       list: (params) => request(`/products/public/products${createQueryString(params)}`, { method: "GET", skipAuth: true }),
       getById: (productId) => request(`/products/public/products/${productId}`, { method: "GET", skipAuth: true }),
+    },
+    reviews: {
+      // API 1 — Admin: generate review invitations for a completed enquiry
+      generateInvitations: (enquiryId) =>
+        request(`/products/enquiries/${enquiryId}/review-invitations`, { method: "POST" }),
+      // API 2 — Public: load an invitation by its code
+      getInvitation: (inviteCode) =>
+        request(`/products/reviews/${inviteCode}`, { method: "GET", skipAuth: true }),
+      // API 3 — Public: submit a review against an invitation
+      submit: (inviteCode, body) =>
+        request(`/products/reviews/${inviteCode}`, { method: "POST", body, skipAuth: true }),
+      // API 4 — Admin: approve a pending review
+      approve: (reviewId) =>
+        request(`/products/reviews/${reviewId}/approve`, { method: "PATCH" }),
+      // API 5 — Public: reviews for a single product (used on the Product Details page)
+    updateStatus: (id, data) =>
+        request(`/products/reviews/${id}/status`, { method: "PATCH", body: data }),
+
+    update: (id, data) =>
+    request(`/products/reviews/${id}`, {
+        method: "PATCH",
+        body: data,
+    }),
+
+      listByProduct: (productId, params) =>
+        request(`/products/${productId}/reviews${createQueryString(params)}`, { method: "GET", skipAuth: true }),
+      // NOTE: no backend endpoint for this was in the spec — assumed to mirror the
+      // admin products/enquiries list shape ({ data: [...], pagination }). Update the
+      // path here if the real endpoint differs.
+      adminList: (params) =>
+        request(`/products/admin/reviews${createQueryString(params)}`, { method: "GET" }),
     },
   },
   health: {

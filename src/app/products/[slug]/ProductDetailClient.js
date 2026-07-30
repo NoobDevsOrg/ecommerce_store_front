@@ -2,84 +2,47 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-// import { useParams } from "next/navigation";
-// import { getPublicProductBySlug } from "../../../lib/publicApi";
 import { addToCart } from "../../../store/cartStore";
-// import Image from "next/image";
+import ProductReviews from "../../../components/product/ProductReviews";
 
 export default function ProductDetailPage({ product }) {
-    // const params = useParams();
-    // const slug = params?.slug;
+    const images = product.image_urls || [];
+    const primaryImage = images.find((image) => image.is_primary) || images[0];
 
-    // const [product, setProduct] = useState(null);
-    // const [isLoading, setIsLoading] = useState(true);
-    // const [error, setError] = useState(null);
-    const [selectedImageId, setSelectedImageId] = useState(null);
+    const [selectedImageId, setSelectedImageId] = useState(primaryImage?.id ?? null);
     const [isZooming, setIsZooming] = useState(false);
     const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-    // useEffect(() => {
-    //     if (!slug) return;
-    //     // console.log(slug)
+    // Detect touch/coarse-pointer devices on mount so we can skip the
+    // hover-zoom interaction there — mousemove/mouseenter don't behave
+    // reliably on touch and the zoom overlay ends up "stuck" mid-tap.
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const mq = window.matchMedia("(pointer: coarse)");
+        setIsTouchDevice(mq.matches);
+        const handler = (e) => setIsTouchDevice(e.matches);
+        mq.addEventListener?.("change", handler);
+        return () => mq.removeEventListener?.("change", handler);
+    }, []);
 
-    //     const fetchProduct = async () => {
-    //         setIsLoading(true);
-    //         setError(null);
+    // If the product changes (e.g. client-side navigation between products),
+    // reset the selected image back to that product's primary image.
+    useEffect(() => {
+        setSelectedImageId(primaryImage?.id ?? null);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [product?.id]);
 
-    //         try {
-    //             const data = await getPublicProductBySlug(slug);
-    //             setProduct(data);
-    //             // const images = data || [];
-    //             // console.log("Fetched product:", data);
-    //             // const cover = images.find((data) => data.is_primary) || images[0];
-    //             // console.log("Selected cover image:", cover);
-    //             if (data?.image_urls?.length > 0) {
-    //                 setSelectedImageId(data.image_urls[0].id);
-    //             }
-    //         } catch (err) {
-    //             console.error("Failed to fetch product:", err);
-    //             setError(err.message || "Product not found");
-    //             setProduct(null);
-    //         } finally {
-    //             setIsLoading(false);
-    //         }
-    //     };
-
-    //     fetchProduct();
-    // }, [slug]);
-
-    // if (isLoading) {
-    //     return (
-    //         <main className="bg-[#0f0a1a] min-h-screen flex items-center justify-center">
-    //             <p className="text-stone-400">Loading product details...</p>
-    //         </main>
-    //     );
-    // }
-
-    // if (error || !product) {
-    //     return (
-    //         <main className="bg-[#0f0a1a] min-h-screen px-6 py-20">
-    //             <div className="max-w-[1440px] mx-auto">
-    //                 <div className="text-center py-16">
-    //                     <p className="text-stone-400 mb-6">{error || "Product not found"}</p>
-    //                     <Link href="/products" className="text-[#b48a3c] hover:text-[#d4af37] transition-colors">
-    //                         Back to Products
-    //                     </Link>
-    //                 </div>
-    //             </div>
-    //         </main>
-    //     );
-    // }
-
-
-
-    const images = product.image_urls || [];
-    // const cover = images.find((image) => image.is_primary) || images[0];
-    // const gallery = [...images].sort((a, b) => (a?.sort_order ?? 0) - (b?.sort_order ?? 0));
-    // const selectedImage = gallery.find((image) => image.id === selectedImageId) || cover || gallery[0] || { url: "/images/placeholder.jpg" };
-    const selectedImage = images.find((image) => image.id === product.image_urls[0].id) || images[0] || { url: "/images/placeholder.jpg" };
+    // This was the bug: it needs to actually respect selectedImageId,
+    // otherwise clicking a thumbnail updates state but the main image
+    // never changes.
+    const selectedImage =
+        images.find((image) => image.id === selectedImageId) ||
+        primaryImage ||
+        { url: "/images/placeholder.jpg" };
 
     const handleZoomMove = (event) => {
+        if (isTouchDevice) return;
         const rect = event.currentTarget.getBoundingClientRect();
         const x = ((event.clientX - rect.left) / rect.width) * 100;
         const y = ((event.clientY - rect.top) / rect.height) * 100;
@@ -94,7 +57,7 @@ export default function ProductDetailPage({ product }) {
             {/* Breadcrumb */}
             <section className="border-b border-stone-900/50 px-[clamp(1rem,2.5vw,2rem)] py-[clamp(0.75rem,1.5vw,1.5rem)]">
                 <div className="mx-auto w-full max-w-[min(1700px,96vw)]">
-                    <div className="flex items-center gap-3 text-sm">
+                    <div className="flex items-center gap-3 text-sm overflow-x-auto whitespace-nowrap">
                         <Link href="/" className="text-stone-400 hover:text-stone-200 transition-colors">
                             Home
                         </Link>
@@ -115,22 +78,30 @@ export default function ProductDetailPage({ product }) {
                     <div className="xl:pr-[clamp(1.5rem,2.8vw,3rem)] xl:border-r xl:border-stone-800/70">
                         {/* Main Image */}
                         <div
-                            className="relative h-[clamp(320px,52vw,760px)] overflow-hidden rounded-sm bg-[#120f1d] border border-stone-800/60 mb-4 cursor-zoom-in"
-                            onMouseEnter={() => setIsZooming(true)}
+                            className={`relative h-[clamp(280px,52vw,760px)] overflow-hidden rounded-sm bg-[#120f1d] border border-stone-800/60 mb-4 ${isTouchDevice ? "" : "cursor-zoom-in"
+                                }`}
+                            onMouseEnter={() => !isTouchDevice && setIsZooming(true)}
                             onMouseLeave={() => setIsZooming(false)}
                             onMouseMove={handleZoomMove}
                         >
                             <img
                                 src={selectedImage?.url}
                                 alt={product.name}
-                                className={`w-full h-full object-contain ${isZooming ? "scale-[2.5] transition-none" : "scale-100 transition-transform duration-300"}`}
-                                style={{ transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%` }}
+                                className={`w-full h-full object-contain ${isZooming && !isTouchDevice
+                                        ? "scale-[2.5] transition-none"
+                                        : "scale-100 transition-transform duration-300"
+                                    }`}
+                                style={
+                                    isZooming && !isTouchDevice
+                                        ? { transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%` }
+                                        : undefined
+                                }
                                 onError={(e) => {
                                     e.target.src = "/images/placeholder.jpg";
                                 }}
                             />
 
-                            {isZooming ? (
+                            {isZooming && !isTouchDevice ? (
                                 <div
                                     aria-hidden="true"
                                     className="pointer-events-none absolute h-24 w-24 rounded-sm border border-[#b48a3c]/70 bg-[#b48a3c]/10"
@@ -143,14 +114,18 @@ export default function ProductDetailPage({ product }) {
                         </div>
 
                         {/* Thumbnails */}
+ 
                         <div className="grid grid-cols-4 gap-[clamp(0.5rem,1vw,1rem)]">
                             {images.map((image) => (
                                 <button
                                     key={image.id}
+                                    type="button"
                                     onClick={() => setSelectedImageId(image.id)}
+                                    aria-label={`View image ${image.id}`}
+                                    aria-pressed={selectedImageId === image.id}
                                     className={`relative aspect-square rounded-sm overflow-hidden border-2 transition-colors ${selectedImageId === image.id
-                                        ? "border-[#b48a3c]"
-                                        : "border-stone-800/50 hover:border-stone-700"
+                                            ? "border-[#b48a3c]"
+                                            : "border-stone-800/50 hover:border-stone-700 active:border-stone-600"
                                         }`}
                                 >
                                     <img
@@ -176,7 +151,7 @@ export default function ProductDetailPage({ product }) {
                         )}
 
                         {/* Name */}
-                        <h1 className="mb-6 text-[clamp(1.75rem,3.8vw,3.6rem)] font-serif text-white leading-[1.12]">
+                        <h1 className="mb-6 text-[clamp(1.75rem,3.8vw,3.6rem)] font-serif text-white leading-[1.12] break-words">
                             {product.name}
                         </h1>
 
@@ -194,50 +169,42 @@ export default function ProductDetailPage({ product }) {
                         {/* Stock Status */}
                         <div className="mb-8">
                             <p className="text-stone-400 text-sm uppercase tracking-[0.2em] mb-2">Availability</p>
-                            <p className={`text-sm font-medium ${product.stock_qty > 0 ? "text-green-400" : "text-red-400"
-                                }`}>
-                                {product.stock_qty > 0 ? `In Stock (${product.stock_qty} available)` : "Out of Stock"}
+                            <p
+                                className={`text-sm font-medium ${product.stock_qty > 0 ? "text-green-400" : "text-red-400"
+                                    }`}
+                            >
+                                {product.stock_qty > 0
+                                    ? `In Stock (${product.stock_qty} available)`
+                                    : "Out of Stock"}
                             </p>
                         </div>
-
-                        {/* Slug & ID (Debug Info) */}
-                        {/* <div className="mb-8 p-3 bg-stone-900/30 rounded-sm border border-stone-800/30">
-              <p className="text-[10px] text-stone-500">
-                <span className="block">ID: {product.id}</span>
-                <span className="block">Slug: {product.slug}</span>
-              </p>
-            </div> */}
 
                         {/* Add to Cart Button */}
                         <button
                             onClick={() => addToCart(product)}
                             disabled={product.stock_qty <= 0}
-                            className="w-full mb-6 px-6 py-4 bg-[#b48a3c] text-[#0f0a1a] font-bold uppercase tracking-[0.2em] text-sm rounded-sm hover:bg-[#d4af37] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full mb-6 px-6 py-4 bg-[#b48a3c] text-[#0f0a1a] font-bold uppercase tracking-[0.2em] text-sm rounded-sm hover:bg-[#d4af37] active:bg-[#c49a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {product.stock_qty > 0 ? "Add to Collection" : "Out of Stock"}
                         </button>
 
                         <Link
                             href="/products"
-                            className="w-full text-center px-6 py-4 border border-[#b48a3c]/30 text-[#b48a3c] font-bold uppercase tracking-[0.2em] text-sm rounded-sm hover:bg-[#b48a3c]/10 transition-colors"
+                            className="w-full text-center px-6 py-4 border border-[#b48a3c]/30 text-[#b48a3c] font-bold uppercase tracking-[0.2em] text-sm rounded-sm hover:bg-[#b48a3c]/10 active:bg-[#b48a3c]/20 transition-colors"
                         >
                             Continue Shopping
                         </Link>
-
-                        {/* Created Date */}
-                        {/* {product.reated_at && (
-              <p className="text-stone-500 text-xs mt-8">
-                Added on {new Date(product.created_at).toLocaleDateString("en-IN")}
-              </p>
-            )} */}
                     </div>
                 </div>
             </section>
 
+            {/* Customer Reviews */}
+            <ProductReviews productId={product.id} />
+
             {/* Related Products (Optional) */}
             <section className="border-t border-stone-900/50 px-[clamp(1rem,2.5vw,2rem)] py-[clamp(2rem,5vw,5rem)]">
                 <div className="mx-auto w-full max-w-[min(1700px,96vw)]">
-                    <h2 className="text-3xl font-serif text-white mb-12">
+                    <h2 className="text-2xl md:text-3xl font-serif text-white mb-8 md:mb-12">
                         You May Also <span className="text-stone-500 font-light italic">Like</span>
                     </h2>
                     <p className="text-stone-400 text-center py-8">

@@ -326,11 +326,13 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-const CARD_WIDTH_MOBILE = 200;
-const CARD_WIDTH_DESKTOP = 300;
-const GAP = 32;
 // A user must move more than this many px before it counts as a drag (not a tap/click)
 const DRAG_THRESHOLD = 8;
+// Autoplay speed, in px / second (kept as *speed* not duration, so it never depends
+// on guessed card widths — this is what actually makes the motion feel smooth &
+// consistent no matter what width the cards render at on a given screen)
+const SPEED_DESKTOP = 50;
+const SPEED_MOBILE = 36;
 
 const getProductImage = (product) => {
   if (!product?.image_urls?.length) return "/placeholder-jewelry.jpg";
@@ -346,7 +348,7 @@ function TrackCard({ product, getIsDrag }) {
   const [hovered, setHovered] = useState(false);
 
   const handleClick = (e) => {
-    // Block navigation only if this interaction was a real drag
+    // Block navigation only if this interaction was a real drag, not a tap/click
     if (getIsDrag()) {
       e.preventDefault();
       e.stopPropagation();
@@ -364,10 +366,11 @@ function TrackCard({ product, getIsDrag }) {
       onMouseLeave={() => setHovered(false)}
     >
       <div
-        className={`relative overflow-hidden rounded-sm border transition-all duration-700 ${hovered
+        className={`relative overflow-hidden rounded-sm border transition-all duration-700 ${
+          hovered
             ? "border-[#b48a3c]/60 shadow-[0_0_40px_rgba(180,138,60,0.18)]"
             : "border-stone-800/40"
-          }`}
+        }`}
       >
         {/* Image */}
         <div
@@ -375,8 +378,9 @@ function TrackCard({ product, getIsDrag }) {
           style={{ height: "clamp(240px, 60vw, 360px)" }}
         >
           <div
-            className={`absolute inset-0 transition-transform duration-700 ease-out ${hovered ? "scale-110" : "scale-100"
-              }`}
+            className={`absolute inset-0 transition-transform duration-700 ease-out ${
+              hovered ? "scale-110" : "scale-100"
+            }`}
           >
             <Image
               src={getProductImage(product)}
@@ -390,8 +394,9 @@ function TrackCard({ product, getIsDrag }) {
           </div>
 
           <div
-            className={`absolute inset-0 bg-gradient-to-t from-[#0f0a1a]/90 via-[#0f0a1a]/20 to-transparent transition-opacity duration-500 ${hovered ? "opacity-100" : "opacity-60"
-              }`}
+            className={`absolute inset-0 bg-gradient-to-t from-[#0f0a1a]/90 via-[#0f0a1a]/20 to-transparent transition-opacity duration-500 ${
+              hovered ? "opacity-100" : "opacity-60"
+            }`}
           />
 
           {product.is_featured && (
@@ -403,8 +408,9 @@ function TrackCard({ product, getIsDrag }) {
           )}
 
           <div
-            className={`absolute inset-x-0 bottom-0 z-20 hidden md:flex flex-col items-center pb-6 transition-all duration-500 ${hovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-              }`}
+            className={`absolute inset-x-0 bottom-0 z-20 hidden md:flex flex-col items-center pb-6 transition-all duration-500 ${
+              hovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            }`}
           >
             <span className="px-7 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[9px] uppercase tracking-[0.4em] font-bold hover:bg-[#b48a3c] hover:border-[#b48a3c] hover:text-[#0f0a1a] transition-all duration-300 rounded-sm">
               Quick View
@@ -426,7 +432,12 @@ function TrackCard({ product, getIsDrag }) {
             </span>
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
-                <svg key={i} className="w-2 h-2 md:w-2.5 md:h-2.5 text-[#b48a3c]" fill="currentColor" viewBox="0 0 20 20">
+                <svg
+                  key={i}
+                  className="w-2 h-2 md:w-2.5 md:h-2.5 text-[#b48a3c]"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               ))}
@@ -439,51 +450,41 @@ function TrackCard({ product, getIsDrag }) {
 }
 
 // ── Gold Scrollbar ─────────────────────────────────────────────────────
-function GoldScrollbar({ trackRef, tweenRef, productCount }) {
+// Purely a "controller" — it reads/writes progress (0..1) through the callbacks
+// it's given, and has no idea how the marquee itself is implemented.
+function GoldScrollbar({ getProgress, setProgress, onInteractStart, onInteractEnd }) {
   const barRef = useRef(null);
   const thumbRef = useRef(null);
   const rafRef = useRef(null);
   const drag = useRef({ active: false, startClient: 0, startLeft: 0 });
 
-  const totalWidth = () => {
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    return ((isMobile ? CARD_WIDTH_MOBILE : CARD_WIDTH_DESKTOP) + GAP) * productCount;
-  };
-
-  const jumpToProgress = (progress) => {
-    if (!trackRef.current) return;
-    gsap.set(trackRef.current, { x: -(progress * totalWidth()) });
-  };
-
-  // Sync thumb from marquee position
   const syncThumb = useCallback(() => {
-    const track = trackRef.current;
     const bar = barRef.current;
     const thumb = thumbRef.current;
-    if (track && bar && thumb) {
-      const tw = totalWidth();
-      const matrix = new DOMMatrix(getComputedStyle(track).transform);
-      const progress = (Math.abs(matrix.m41) % tw) / tw;
+    if (bar && thumb) {
+      const progress = getProgress();
       const maxLeft = bar.offsetWidth - thumb.offsetWidth;
       thumb.style.transform = `translateX(${progress * maxLeft}px)`;
     }
     rafRef.current = requestAnimationFrame(syncThumb);
-  }, [productCount]);
+  }, [getProgress]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(syncThumb);
     return () => cancelAnimationFrame(rafRef.current);
   }, [syncThumb]);
 
-  const getClientX = (e) => e.touches ? e.touches[0].clientX : e.clientX;
+  const getClientX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
 
   const onThumbStart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    tweenRef.current?.pause();
-    const currentLeft = parseFloat(
-      thumbRef.current?.style.transform?.replace(/[^0-9.-]/g, "") || "0"
-    );
+    onInteractStart();
+    const bar = barRef.current;
+    const thumb = thumbRef.current;
+    if (!bar || !thumb) return;
+    const maxLeft = bar.offsetWidth - thumb.offsetWidth;
+    const currentLeft = getProgress() * maxLeft;
     drag.current = { active: true, startClient: getClientX(e), startLeft: currentLeft };
   };
 
@@ -496,12 +497,13 @@ function GoldScrollbar({ trackRef, tweenRef, productCount }) {
     const maxLeft = bar.offsetWidth - thumb.offsetWidth;
     const delta = getClientX(e) - drag.current.startClient;
     const newLeft = Math.max(0, Math.min(maxLeft, drag.current.startLeft + delta));
-    jumpToProgress(newLeft / maxLeft);
+    setProgress(newLeft / maxLeft);
   };
 
   const onThumbEnd = () => {
+    if (!drag.current.active) return;
     drag.current.active = false;
-    tweenRef.current?.resume();
+    onInteractEnd();
   };
 
   const onBarTap = (e) => {
@@ -513,13 +515,21 @@ function GoldScrollbar({ trackRef, tweenRef, productCount }) {
     const tapX = getClientX(e) - rect.left;
     const maxLeft = bar.offsetWidth - thumb.offsetWidth;
     const progress = Math.max(0, Math.min(1, (tapX - thumb.offsetWidth / 2) / maxLeft));
-    jumpToProgress(progress);
+    onInteractStart();
+    setProgress(progress);
+    onInteractEnd();
   };
 
   return (
     <div className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-6">
       <div className="flex items-center gap-3 mb-3">
-        <svg className="w-3 h-3 text-stone-600 flex-shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <svg
+          className="w-3 h-3 text-stone-600 flex-shrink-0"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
           <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <span className="text-[8px] uppercase tracking-[0.4em] text-stone-600 font-bold">
@@ -562,25 +572,21 @@ export default function TopSelling() {
 
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
-  const tweenRef = useRef(null);
   const headerRef = useGsapReveal({ y: 24, duration: 1.1 });
 
-  // Drag state — all in refs, zero re-renders
-  const drag = useRef({
-    active: false,
-    startClient: 0,
-    startX: 0,
-    totalMoved: 0, // cumulative px moved — the ground truth for drag vs tap
-  });
+  // ── Marquee engine state (all refs — zero re-renders per frame) ──
+  const posRef = useRef(0); // current translateX, kept in the range (-S, 0]
+  const singleWidthRef = useRef(0); // px width of ONE set of products (measured from real DOM)
+  const hoveredRef = useRef(false); // true while pointer is over the track (pause)
+  const interactingRef = useRef(false); // true while user is dragging track or scrollbar (pause)
+  const rafRef = useRef(null);
+  const lastTimeRef = useRef(null);
 
-  // getIsDrag is called at click time — reads totalMoved which was set during move
+  // Drag state for the track itself
+  const drag = useRef({ active: false, startClient: 0, startPos: 0, totalMoved: 0 });
   const getIsDrag = useCallback(() => drag.current.totalMoved > DRAG_THRESHOLD, []);
 
-  const getCardWidth = () => {
-    if (typeof window === "undefined") return CARD_WIDTH_DESKTOP + GAP;
-    return (window.innerWidth < 768 ? CARD_WIDTH_MOBILE : CARD_WIDTH_DESKTOP) + GAP;
-  };
-
+  // ── Fetch products ──
   useEffect(() => {
     const fetchTopProducts = async () => {
       try {
@@ -601,78 +607,146 @@ export default function TopSelling() {
     fetchTopProducts();
   }, []);
 
-  // GSAP marquee
+  // ── Measure the real rendered width of one set of cards ──
+  // This is what makes the motion smooth: instead of guessing a card width in JS
+  // (which can drift from the actual clamp()-based responsive width and cause
+  // jitter/snapping), we measure the DOM directly.
+  const measure = useCallback(() => {
+    if (!trackRef.current) return;
+    singleWidthRef.current = trackRef.current.scrollWidth / 2;
+  }, []);
+
   useEffect(() => {
-    if (!trackRef.current || topProducts.length < 2) return;
-    const cardWidth = getCardWidth();
-    const totalWidth = cardWidth * topProducts.length;
+    if (!topProducts.length) return;
+    const id = requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener("resize", measure);
+    };
+  }, [topProducts, measure]);
 
-    gsap.set(trackRef.current, { x: 0 });
-    tweenRef.current = gsap.to(trackRef.current, {
-      x: -totalWidth,
-      duration: topProducts.length * (window.innerWidth < 768 ? 3 : 4.5),
-      ease: "none",
-      repeat: -1,
-      modifiers: {
-        x: gsap.utils.unitize((x) => parseFloat(x) % totalWidth),
-      },
-    });
+  // Keep posRef inside (-S, 0]. Because the track is two identical sets of
+  // products back to back, wrapping at this boundary is visually seamless.
+  const wrap = (pos) => {
+    const S = singleWidthRef.current;
+    if (!S) return pos;
+    let p = pos;
+    while (p <= -S) p += S;
+    while (p > 0) p -= S;
+    return p;
+  };
 
-    return () => tweenRef.current?.kill();
+  const applyTransform = () => {
+    if (trackRef.current) {
+      trackRef.current.style.transform = `translate3d(${posRef.current}px,0,0)`;
+    }
+  };
+
+  // ── Autoplay loop (requestAnimationFrame — frame-accurate, no easing snaps) ──
+  useEffect(() => {
+    if (!topProducts.length) return;
+
+    const speed = () =>
+      typeof window !== "undefined" && window.innerWidth < 768 ? SPEED_MOBILE : SPEED_DESKTOP;
+
+    const tick = (t) => {
+      if (lastTimeRef.current == null) lastTimeRef.current = t;
+      // clamp dt so tab-switching / long pauses don't cause a big visible jump
+      const dt = Math.min((t - lastTimeRef.current) / 1000, 0.05);
+      lastTimeRef.current = t;
+
+      if (!hoveredRef.current && !interactingRef.current && singleWidthRef.current) {
+        posRef.current = wrap(posRef.current - speed() * dt);
+        applyTransform();
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      lastTimeRef.current = null;
+    };
   }, [topProducts]);
 
-  // Section entrance
+  // ── Section entrance ──
   useEffect(() => {
     if (!sectionRef.current || isLoading) return;
     const ctx = gsap.context(() => {
-      gsap.fromTo(sectionRef.current, { opacity: 0 }, {
-        opacity: 1,
-        duration: 1,
-        scrollTrigger: { trigger: sectionRef.current, start: "top 80%", once: true },
-      });
+      gsap.fromTo(
+        sectionRef.current,
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 1,
+          scrollTrigger: { trigger: sectionRef.current, start: "top 80%", once: true },
+        }
+      );
     }, sectionRef);
     return () => ctx.revert();
   }, [isLoading]);
 
-  // ── Drag handlers ──────────────────────────────────────────────────
-  const getClientX = (e) => e.touches ? e.touches[0].clientX : e.clientX;
+  // ── Hover-to-pause (requirement: hovering a product stops the carousel) ──
+  const onTrackEnter = () => {
+    hoveredRef.current = true;
+  };
+  const onTrackLeave = () => {
+    hoveredRef.current = false;
+    // if the pointer leaves mid-drag, end the drag cleanly too
+    if (drag.current.active) onDragEnd();
+  };
+
+  // ── Drag-to-scroll on the track itself ──
+  const getClientX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
 
   const onDragStart = (e) => {
-    if (!tweenRef.current || !trackRef.current) return;
-    tweenRef.current.pause();
-    const matrix = new DOMMatrix(getComputedStyle(trackRef.current).transform);
+    interactingRef.current = true;
     drag.current = {
       active: true,
       startClient: getClientX(e),
-      startX: matrix.m41,
-      totalMoved: 0, // reset every new interaction
+      startPos: posRef.current,
+      totalMoved: 0,
     };
   };
 
   const onDragMove = (e) => {
-    if (!drag.current.active || !trackRef.current) return;
+    if (!drag.current.active) return;
     if (e.cancelable) e.preventDefault();
-
     const delta = getClientX(e) - drag.current.startClient;
-    drag.current.totalMoved = Math.abs(delta); // track how far we've moved
-
-    const cardWidth = getCardWidth();
-    const totalWidth = cardWidth * topProducts.length;
-    const newX = (drag.current.startX + delta) % totalWidth;
-    gsap.set(trackRef.current, { x: newX });
+    drag.current.totalMoved = Math.max(drag.current.totalMoved, Math.abs(delta));
+    posRef.current = wrap(drag.current.startPos + delta);
+    applyTransform();
   };
 
   const onDragEnd = () => {
     if (!drag.current.active) return;
     drag.current.active = false;
-    // Resume marquee only if this was NOT a real drag (i.e. it was a tap)
-    // For real drags, also resume — user just wanted to reposition
-    tweenRef.current?.resume();
-    // Note: totalMoved is intentionally NOT reset here.
-    // The click event fires synchronously right after touchend/mouseup,
-    // so getIsDrag() can still read the correct value at click time.
-    // We reset it at the START of the next interaction instead (onDragStart).
+    interactingRef.current = false;
+    // totalMoved is intentionally left alone here — the click handler on the
+    // card fires right after and needs to read it to decide drag vs tap.
   };
+
+  // ── Scrollbar <-> marquee bridge ──
+  const getProgress = useCallback(() => {
+    const S = singleWidthRef.current;
+    if (!S) return 0;
+    return (-posRef.current) / S;
+  }, []);
+
+  const setProgress = useCallback((p) => {
+    const S = singleWidthRef.current;
+    if (!S) return;
+    posRef.current = wrap(-(p * S));
+    applyTransform();
+  }, []);
+
+  const onScrollbarInteractStart = useCallback(() => {
+    interactingRef.current = true;
+  }, []);
+  const onScrollbarInteractEnd = useCallback(() => {
+    interactingRef.current = false;
+  }, []);
 
   if (isLoading) {
     return (
@@ -681,7 +755,10 @@ export default function TopSelling() {
           <div className="flex gap-4 overflow-hidden">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="flex-shrink-0" style={{ width: "clamp(180px, 55vw, 300px)" }}>
-                <div className="bg-stone-900/50 rounded-sm animate-pulse" style={{ height: "clamp(240px, 60vw, 360px)" }} />
+                <div
+                  className="bg-stone-900/50 rounded-sm animate-pulse"
+                  style={{ height: "clamp(240px, 60vw, 360px)" }}
+                />
                 <div className="mt-4 h-4 bg-stone-900/50 rounded animate-pulse" />
                 <div className="mt-2 h-3 bg-stone-900/30 rounded animate-pulse w-2/3" />
               </div>
@@ -712,11 +789,11 @@ export default function TopSelling() {
               </span>
             </div>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif text-white tracking-tight leading-tight">
-              Top Selling{" "}
-              <em className="not-italic text-stone-500 font-light">Collections</em>
+              Top Selling <em className="not-italic text-stone-500 font-light">Collections</em>
             </h2>
             <p className="text-stone-500 text-sm mt-4 font-light leading-relaxed max-w-sm">
-              Pieces that have captured the hearts of our patrons — the pinnacle of our artistic heritage.
+              Pieces that have captured the hearts of our patrons — the pinnacle of our artistic
+              heritage.
             </p>
           </div>
           <Link
@@ -732,10 +809,11 @@ export default function TopSelling() {
       {/* ── Marquee Track ── */}
       <div
         className="relative touch-none select-none"
+        onMouseEnter={onTrackEnter}
+        onMouseLeave={onTrackLeave}
         onMouseDown={onDragStart}
         onMouseMove={onDragMove}
         onMouseUp={onDragEnd}
-        onMouseLeave={onDragEnd}
         onTouchStart={onDragStart}
         onTouchMove={onDragMove}
         onTouchEnd={onDragEnd}
@@ -752,23 +830,18 @@ export default function TopSelling() {
           style={{ width: "max-content" }}
         >
           {displayProducts.map((product, idx) => (
-            <TrackCard
-              key={`${product.id}-${idx}`}
-              product={product}
-              getIsDrag={getIsDrag}
-            />
+            <TrackCard key={`${product.id}-${idx}`} product={product} getIsDrag={getIsDrag} />
           ))}
         </div>
       </div>
 
       {/* ── Gold Scrollbar ── */}
-      {topProducts.length > 0 && (
-        <GoldScrollbar
-          trackRef={trackRef}
-          tweenRef={tweenRef}
-          productCount={topProducts.length}
-        />
-      )}
+      <GoldScrollbar
+        getProgress={getProgress}
+        setProgress={setProgress}
+        onInteractStart={onScrollbarInteractStart}
+        onInteractEnd={onScrollbarInteractEnd}
+      />
     </section>
   );
 }
