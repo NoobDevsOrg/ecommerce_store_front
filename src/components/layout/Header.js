@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-<<<<<<< HEAD
 import { useEffect, useRef, useState } from "react";
-=======
-import { useEffect, useState } from "react";
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
 import { useRouter } from "next/navigation";
 import { getToken } from "../../lib/auth";
 import { getCart } from "../../store/cartStore";
@@ -24,10 +20,7 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [enquiryCount, setEnquiryCount] = useState(0);
-<<<<<<< HEAD
   const hasLoadedEnquiryCountRef = useRef(false);
-=======
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("theme");
@@ -112,16 +105,10 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
   };
 
   useEffect(() => {
-<<<<<<< HEAD
     if (!isAdminAuthenticated) {
       hasLoadedEnquiryCountRef.current = false;
       return undefined;
     }
-=======
-    if (!isAdminAuthenticated) return;
-
-    let intervalId;
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
 
     const fetchEnquiryCount = async () => {
       try {
@@ -133,28 +120,16 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
       }
     };
 
-<<<<<<< HEAD
     if (!hasLoadedEnquiryCountRef.current) {
       hasLoadedEnquiryCountRef.current = true;
       fetchEnquiryCount();
     }
-=======
-    // initial load
-    fetchEnquiryCount();
-
-    // polling every 10s
-    intervalId = setInterval(fetchEnquiryCount, 10000);
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
 
     // listen for manual refresh events (after status update)
     const handleRefresh = () => fetchEnquiryCount();
     window.addEventListener("enquiryUpdated", handleRefresh);
 
     return () => {
-<<<<<<< HEAD
-=======
-      clearInterval(intervalId);
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
       window.removeEventListener("enquiryUpdated", handleRefresh);
     };
   }, [isAdminAuthenticated]);
@@ -419,8 +394,4 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
       </div>
     </>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774

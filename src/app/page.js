@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import DynamicHeroSlider from "../components/home/DynamicHeroSlider";
 import TopSelling from "../components/home/TopSelling";
 import NewArrivals from "../components/home/NewArrivals";
@@ -15,24 +14,11 @@ export const metadata = {
   },
 };
 
-=======
-import HeroSlider from "../components/home/HeroSlider";
-import TopSelling from "../components/home/TopSelling";
-import NewArrivals from "../components/home/NewArrivals";
-import BrandStatement from "../components/home/Brandstatement";
-import Testimonials from "../components/home/Testimonials";
-import Link from "next/link";
-
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
 export default function Home() {
   return (
     <main className="bg-[#0f0a1a]">
       {/* 1. Impactful Entrance */}
-<<<<<<< HEAD
       <DynamicHeroSlider />
-=======
-      <HeroSlider />
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
       {/* 3. The Curated Vault */}
       <TopSelling />
 
@@ -83,8 +69,4 @@ function FinalCta() {
       </div>
     </section>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774

@@ -573,10 +573,7 @@ export default function TopSelling() {
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const headerRef = useGsapReveal({ y: 24, duration: 1.1 });
-<<<<<<< HEAD
   const hasLoadedRef = useRef(false);
-=======
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
 
   // ── Marquee engine state (all refs — zero re-renders per frame) ──
   const posRef = useRef(0); // current translateX, kept in the range (-S, 0]
@@ -592,12 +589,9 @@ export default function TopSelling() {
 
   // ── Fetch products ──
   useEffect(() => {
-<<<<<<< HEAD
     if (hasLoadedRef.current) return;
     hasLoadedRef.current = true;
 
-=======
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
     const fetchTopProducts = async () => {
       try {
         const params = new URLSearchParams();
@@ -854,8 +848,4 @@ export default function TopSelling() {
       />
     </section>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774

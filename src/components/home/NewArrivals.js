@@ -140,21 +140,15 @@ export default function NewArrivals() {
 
   const sectionRef = useRef(null);
   const gridRef = useRef(null);
-<<<<<<< HEAD
   const hasLoadedRef = useRef(false);
-=======
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
   const headerRef = useGsapReveal({ y: 24, duration: 1.1 });
   const lineRef = useRef(null);
   const ctaRef = useGsapReveal({ y: 20, duration: 0.9, start: "top 95%" });
   console.log("newProducts", newProducts);
   useEffect(() => {
-<<<<<<< HEAD
     if (hasLoadedRef.current) return;
     hasLoadedRef.current = true;
 
-=======
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
     const fetchTopProducts = async () => {
       try {
         const data = await api.get("/products/public/products", {
@@ -337,8 +331,4 @@ export default function NewArrivals() {
       `}</style>
     </section>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774

@@ -1,5 +1,4 @@
 "use client";
-<<<<<<< HEAD
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -9,50 +8,11 @@ import { gsap } from "gsap";
 const SLIDE_DURATION = 6000;
 
 export default function HeroSlider({ slides = [] }) {
-=======
-
-import { useEffect, useRef, useState, useCallback } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { gsap } from "gsap";
-
-const slides = [
-  {
-    id: 1,
-    image: "/banners/hero1.jpg",
-    label: "Heritage Artisans",
-    title: ["Timeless Temple", "Collections"],
-    subtitle: "Divine craftsmanship passed down through generations.",
-  },
-  {
-    id: 2,
-    image: "/banners/hero2.jpg",
-    label: "The Bridal Vault",
-    title: ["The Auspicious", "Ensemble"],
-    subtitle: "Celebrate your sacred union with hand-carved gold.",
-  },
-  {
-    id: 3,
-    image: "/banners/hero3.jpg",
-    label: "Eternal Brilliance",
-    title: ["Diamond", "Masterpieces"],
-    subtitle: "Luxury redefined through the lens of tradition.",
-  },
-];
-
-const SLIDE_DURATION = 6000;
-
-export default function HeroSlider() {
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
   const [current, setCurrent] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [progress, setProgress] = useState(0);
   const containerRef = useRef(null);
   const textRefs = useRef([]);
-<<<<<<< HEAD
-=======
-  const progressRef = useRef(null);
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
   const progressTweenRef = useRef(null);
   const intervalRef = useRef(null);
   const imageRefs = useRef([]);
@@ -140,7 +100,6 @@ export default function HeroSlider() {
   );
 
   const next = useCallback(() => {
-<<<<<<< HEAD
     if (slides.length > 1) goTo((current + 1) % slides.length);
   }, [current, goTo, slides.length]);
 
@@ -151,25 +110,13 @@ export default function HeroSlider() {
     } else {
       setProgress(100);
     }
-=======
-    goTo((current + 1) % slides.length);
-  }, [current, goTo]);
-
-  useEffect(() => {
-    startProgressBar();
-    intervalRef.current = setInterval(next, SLIDE_DURATION);
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
     return () => {
       clearInterval(intervalRef.current);
       if (progressTweenRef.current) progressTweenRef.current.kill();
     };
-<<<<<<< HEAD
   }, [next, startProgressBar, slides.length]);
 
   if (!slides.length) return null;
-=======
-  }, [next, startProgressBar]);
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
 
   return (
     <section
@@ -190,22 +137,11 @@ export default function HeroSlider() {
             ref={(el) => (imageRefs.current[index] = el)}
             className="absolute inset-[-4%] will-change-transform"
           >
-<<<<<<< HEAD
             <img
               src={slide.image_url}
               alt={slide.image_alt_text || slide.product?.name || "Hero banner"}
               className={`h-full w-full object-cover transition-transform duration-[2000ms] ease-out ${index === current ? "scale-110" : "scale-100"
                 }`}
-=======
-            <Image
-              src={slide.image}
-              alt={slide.title.join(" ")}
-              fill
-              priority={index === 0}
-              className={`object-cover transition-transform duration-[2000ms] ease-out ${index === current ? "scale-110" : "scale-100"
-                }`}
-              sizes="100vw"
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
             />
           </div>
 
@@ -227,7 +163,6 @@ export default function HeroSlider() {
               ref={(el) => (textRefs.current[index] = el)}
               className="flex flex-col gap-0"
             >
-<<<<<<< HEAD
               {slide.product ? <>
                 <div data-animate className="flex items-center gap-3 mb-7 opacity-0">
                   <div className="w-8 h-[1px] bg-[#b48a3c]" />
@@ -237,63 +172,6 @@ export default function HeroSlider() {
                 {slide.product.price !== null ? <p data-animate className="mt-6 text-stone-300/80 text-sm md:text-base font-light opacity-0">{new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(slide.product.price)}</p> : null}
                 {slide.product.slug ? <div data-animate className="mt-10 opacity-0"><Link href={`/products/${slide.product.slug}`} className="group relative inline-flex items-center gap-3 rounded-sm bg-[#b48a3c] px-8 py-4 text-[10px] font-black uppercase tracking-[0.35em] text-[#0f0a1a] transition-all duration-400 hover:bg-[#d4af37]"><span>View Product</span><span className="group-hover:translate-x-1 transition-transform duration-300">→</span></Link></div> : null}
               </> : null}
-=======
-              {/* Label */}
-              <div
-                data-animate
-                className="flex items-center gap-3 mb-7 opacity-0"
-              >
-                <div className="w-8 h-[1px] bg-[#b48a3c]" />
-                <span className="text-[9px] md:text-[10px] uppercase tracking-[0.7em] text-[#d4af37] font-bold">
-                  {slide.label}
-                </span>
-              </div>
-
-              {/* Title lines */}
-              {slide.title.map((line, i) => (
-                <h1
-                  key={i}
-                  data-animate
-                  className="text-5xl md:text-7xl lg:text-8xl font-serif text-white leading-[1.0] tracking-[-0.02em] opacity-0"
-                >
-                  {i === 1 ? (
-                    <em className="not-italic text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] to-[#b48a3c]">
-                      {line}
-                    </em>
-                  ) : (
-                    line
-                  )}
-                </h1>
-              ))}
-
-              {/* Subtitle */}
-              <p
-                data-animate
-                className="text-stone-300/80 text-sm md:text-base max-w-sm font-light leading-relaxed mt-6 italic opacity-0"
-              >
-                "{slide.subtitle}"
-              </p>
-
-              {/* CTAs */}
-              <div
-                data-animate
-                className="flex flex-col sm:flex-row gap-4 mt-10 opacity-0"
-              >
-                <Link
-                  href="/products"
-                  className="group relative inline-flex items-center gap-3 px-8 py-4 bg-[#b48a3c] text-[#0f0a1a] text-[10px] uppercase tracking-[0.35em] font-black hover:bg-[#d4af37] transition-all duration-400 rounded-sm overflow-hidden"
-                >
-                  <span className="relative z-10">Explore Collection</span>
-                  <span className="relative z-10 group-hover:translate-x-1 transition-transform duration-300">→</span>
-                </Link>
-                <Link
-                  href="/heritage"
-                  className="inline-flex items-center gap-3 px-8 py-4 border border-white/20 text-white/80 text-[10px] uppercase tracking-[0.35em] font-bold hover:border-[#b48a3c]/50 hover:text-white backdrop-blur-sm transition-all duration-400 rounded-sm"
-                >
-                  Our Story
-                </Link>
-              </div>
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
             </div>
           </div>
         </div>
@@ -359,8 +237,4 @@ export default function HeroSlider() {
       `}</style>
     </section>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774

@@ -1,6 +1,5 @@
 import ProductDetailClient from "./ProductDetailClient";
 import { getPublicProductBySlug } from "../../../lib/publicApi";
-<<<<<<< HEAD
 import { getAbsoluteSiteUrl } from "../../../lib/siteUrl";
 import { notFound } from "next/navigation";
 
@@ -39,10 +38,6 @@ function getProductMetadata(product) {
   };
 }
 
-=======
-import { notFound } from "next/navigation";
-
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
 export async function generateMetadata({ params }) {
   const { slug } = await params;
 
@@ -51,7 +46,6 @@ export async function generateMetadata({ params }) {
     if (!product) {
       return {
         title: "Product Not Found",
-<<<<<<< HEAD
         robots: { index: false, follow: false },
       };
     }
@@ -61,54 +55,6 @@ export async function generateMetadata({ params }) {
     return {
       title: "Product Not Found",
       robots: { index: false, follow: false },
-=======
-      };
-    }
-
-    return {
-      title: product.name,
-      description:
-        product.description ||
-        `${product.name} from Sagunthala Jewellers`,
-
-      alternates: {
-        canonical: `https://sagunthalajewellers.com/products/${product.slug}`,
-      },
-
-      openGraph: {
-        title: product.name,
-        description: product.description,
-        url: `https://sagunthalajewellers.com/products/${product.slug}`,
-        siteName: "Sagunthala Jewellers",
-        images: product.image_urls?.length
-          ? [
-            {
-              url: product.image_urls[0].url,
-              width: 1200,
-              height: 630,
-            },
-          ]
-          : [],
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: product.name,
-        description: product.description,
-        images: product.image_urls?.length
-          ? [product.image_urls[0].url]
-          : [],
-      },
-      keywords: [
-        product.name,
-        "Gold Jewellery",
-        "Diamond Jewellery",
-        "Sagunthala Jewellers",
-      ],
-    };
-  } catch (err) {
-    return {
-      title: "Sagunthala Jewellers",
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
     };
   }
 
@@ -123,16 +69,12 @@ export default async function Page({ params }) {
     notFound();
   }
 
-<<<<<<< HEAD
   const primaryImage = getPrimaryImage(product);
   const canonicalUrl = getAbsoluteSiteUrl(`/products/${product.slug}`);
-=======
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-<<<<<<< HEAD
     ...(product.description ? { description: product.description } : {}),
     ...(product.sku ? { sku: product.sku } : {}),
     ...(primaryImage?.url ? { image: product.images.map((image) => image.url).filter(Boolean) } : {}),
@@ -149,10 +91,6 @@ export default async function Page({ params }) {
         },
       }
       : {}),
-=======
-    description: product.description,
-    image: product.image_urls?.map(img => img.url),
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
   };
 
   return (
@@ -160,19 +98,11 @@ export default async function Page({ params }) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-<<<<<<< HEAD
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
-=======
-          __html: JSON.stringify(jsonLd),
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
         }}
       />
       <ProductDetailClient product={product} />
 
     </>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774

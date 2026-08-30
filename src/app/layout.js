@@ -2,18 +2,12 @@ import "./globals.css";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import AutoPlayAudio from "../components/ui/AutoPlayAudio";
-<<<<<<< HEAD
 import { getSiteUrl } from "../lib/siteUrl";
 
 const siteUrl = getSiteUrl();
 
 export const metadata = {
   ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
-=======
-
-export const metadata = {
-  metadataBase: new URL("https://sagunthala-jewelers.vercel.app/"),
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
 
   title: {
     default: "Sagunthala Jewellers | Premium Gold & Temple Jewellery",
@@ -39,25 +33,10 @@ export const metadata = {
   ],
 
   openGraph: {
-<<<<<<< HEAD
     title: "Sagunthala Jewellers | Premium Gold & Temple Jewellery",
     description: "Premium gold and temple jewellery collections crafted with divine heritage.",
     url: "/",
     siteName: "Sagunthala Jewellers",
-=======
-    title: "Sagunthala Jewellers",
-    description: "Premium gold and temple jewellery collections crafted with divine heritage.",
-    url: "https://sagunthalajewelers.vercel.app",
-    siteName: "Sagunthala Jewellers",
-    images: [
-      {
-        url: "/og-image.jpg", // Recommended to use a lifestyle shot for OG
-        width: 1200,
-        height: 630,
-        alt: "Sagunthala Jewellers Heritage Collection",
-      },
-    ],
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
     locale: "en_IN",
     type: "website",
   },
@@ -66,10 +45,6 @@ export const metadata = {
     card: "summary_large_image",
     title: "Sagunthala Jewellers",
     description: "Premium gold and temple jewellery collections.",
-<<<<<<< HEAD
-=======
-    images: ["/og-image.jpg"],
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
   },
 };
 
@@ -102,8 +77,4 @@ export default function RootLayout({ children }) {
       </body>
     </html>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
