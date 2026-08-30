@@ -5,6 +5,7 @@ import Link from "next/link";
 import { addToCart } from "../../../store/cartStore";
 import ProductReviews from "../../../components/product/ProductReviews";
 
+<<<<<<< HEAD
 export default function ProductDetailPage({ product }) {
     // The detailed public Product response exposes `images` as Product Image
     // records. `image_urls` intentionally contains only strings, so it cannot
@@ -14,6 +15,10 @@ export default function ProductDetailPage({ product }) {
         .filter((image, index, allImages) =>
             allImages.findIndex((candidate) => candidate.id === image.id) === index
         );
+=======
+export default function ProductDetailPage({ product }) {
+    const images = product.image_urls || [];
+>>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
     const primaryImage = images.find((image) => image.is_primary) || images[0];
 
     const [selectedImageId, setSelectedImageId] = useState(primaryImage?.id ?? null);
@@ -91,9 +96,15 @@ export default function ProductDetailPage({ product }) {
                             onMouseLeave={() => setIsZooming(false)}
                             onMouseMove={handleZoomMove}
                         >
+<<<<<<< HEAD
                             <img
                                 src={selectedImage?.url}
                                 alt={selectedImage?.alt_text || product.name}
+=======
+                            <img
+                                src={selectedImage?.url}
+                                alt={product.name}
+>>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
                                 className={`w-full h-full object-contain ${isZooming && !isTouchDevice
                                         ? "scale-[2.5] transition-none"
                                         : "scale-100 transition-transform duration-300"
@@ -128,16 +139,26 @@ export default function ProductDetailPage({ product }) {
                                     key={image.id}
                                     type="button"
                                     onClick={() => setSelectedImageId(image.id)}
+<<<<<<< HEAD
                                     aria-label={`View ${image.alt_text || `${product.name} image`}`}
+=======
+                                    aria-label={`View image ${image.id}`}
+>>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
                                     aria-pressed={selectedImageId === image.id}
                                     className={`relative aspect-square rounded-sm overflow-hidden border-2 transition-colors ${selectedImageId === image.id
                                             ? "border-[#b48a3c]"
                                             : "border-stone-800/50 hover:border-stone-700 active:border-stone-600"
                                         }`}
                                 >
+<<<<<<< HEAD
                                     <img
                                         src={image.url}
                                         alt={image.alt_text || product.name}
+=======
+                                    <img
+                                        src={image.url}
+                                        alt="Product"
+>>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
                                         className="w-full h-full object-contain bg-[#120f1d]"
                                         onError={(e) => {
                                             e.target.src = "/images/placeholder.jpg";

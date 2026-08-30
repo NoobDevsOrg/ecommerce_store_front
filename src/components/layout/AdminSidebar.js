@@ -5,8 +5,12 @@ import { usePathname } from "next/navigation";
 
 const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard" },
+<<<<<<< HEAD
     { label: "Product Onboarding", href: "/admin/products" },
     { label: "Hero Banners", href: "/admin/products/hero-banners" },
+=======
+    { label: "Product Onboarding", href: "/admin/products" },
+>>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
     { label: "Client Details", href: "/admin/clients" },
     { label: "Order Details", href: "/admin/orders" },
     { label: "Enquiry Details", href: "/admin/enquiries" },

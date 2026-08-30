@@ -86,6 +86,7 @@ export default function CartPage() {
                                     key={item.id}
                                     className="group relative flex flex-col md:flex-row md:items-center gap-8 bg-[#1a1425]/40 backdrop-blur-sm border border-stone-800/50 p-6 rounded-xl transition-all duration-500 hover:border-[#b48a3c]/30"
                                 >
+<<<<<<< HEAD
                                     <Link
                                         href={`/products/${item.slug}`}
                                         aria-label={`View ${item.name}`}
@@ -97,10 +98,20 @@ export default function CartPage() {
                                             className="w-full h-full object-cover transition-transform duration-1000 hover:scale-110"
                                         />
                                     </Link>
+=======
+                                    <div className="relative w-32 h-40 md:w-40 md:h-48 overflow-hidden rounded-lg bg-[#0f0a1a] border border-stone-800">
+                                        <img
+                                            src={item.image_01}
+                                            alt={item.name}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                        />
+                                    </div>
+>>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
 
                                     <div className="flex-1 space-y-4">
                                         <div>
                                             <p className="text-[10px] uppercase tracking-widest text-[#b48a3c] mb-1">{item.category}</p>
+<<<<<<< HEAD
                                             <h3 className="text-xl font-serif text-white tracking-wide">
                                                 <Link
                                                     href={`/products/${item.slug}`}
@@ -109,6 +120,9 @@ export default function CartPage() {
                                                     {item.name}
                                                 </Link>
                                             </h3>
+=======
+                                            <h3 className="text-xl font-serif text-white tracking-wide">{item.name}</h3>
+>>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
                                             <p className="text-stone-500 text-xs mt-1 italic">{item.material}</p>
                                         </div>
 
@@ -234,4 +248,8 @@ export default function CartPage() {
 
         </div>
     );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 861c4cf1cb7a35e468d5836098b6e70d5b3b2774
