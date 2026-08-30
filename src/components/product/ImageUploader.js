@@ -1,0 +1,264 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+export default function ImageUploader({
+  files = [],
+  existingImages = [],
+  onChange,
+  disabled = false,
+  productId,
+  onDeleteImage,
+  onSetPrimary,
+}) {
+  const [deleteLoading, setDeleteLoading] = useState({});
+  const [primaryLoading, setPrimaryLoading] = useState(null);
+  const [fileFeedback, setFileFeedback] = useState("");
+  const [lightboxUrl, setLightboxUrl] = useState(null);
+  const lightboxRef = useRef(null);
+
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    const handleKey = (e) => {
+      if (e.key === "Escape") setLightboxUrl(null);
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [lightboxUrl]);
+
+  const generatedPreviews = useMemo(
+    () =>
+      files.map((file) => ({
+        key: `${file.name}-${file.lastModified}`,
+        url: URL.createObjectURL(file),
+        name: file.name,
+        isPrimary: false,
+      })),
+    [files],
+  );
+
+  useEffect(() => {
+    return () => {
+      generatedPreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    };
+  }, [generatedPreviews]);
+
+  const existingPreviews = useMemo(() => {
+    return existingImages.map((image, index) => ({
+      key: `${image.id || image.url || index}`,
+      id: image.id,
+      url: image.url,
+      name: image.alt_text || `Image ${index + 1}`,
+      isPrimary: image.isPrimary,
+    }));
+  }, [existingImages]);
+
+  const handleFileChange = (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    const validFiles = [];
+    let invalidCount = 0;
+
+    selectedFiles.forEach((file) => {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        invalidCount += 1;
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        invalidCount += 1;
+        return;
+      }
+      validFiles.push(file);
+    });
+
+    if (!validFiles.length && selectedFiles.length) {
+      setFileFeedback("No valid files were added. Use JPG, PNG, WEBP, or GIF up to 5MB.");
+      return;
+    }
+
+    setFileFeedback(invalidCount > 0 ? `${invalidCount} file(s) skipped because of type or size limits.` : "");
+    onChange([...files, ...validFiles].slice(0, 10));
+    event.target.value = "";
+  };
+
+  const removeFile = (indexToRemove) => {
+    onChange(files.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleDeleteExistingImage = async (imageId) => {
+    if (!onDeleteImage || !productId || !imageId) return;
+    if (!window.confirm("Delete this image?")) return;
+
+    setDeleteLoading((prev) => ({ ...prev, [imageId]: true }));
+    try {
+      await onDeleteImage(productId, imageId);
+    } finally {
+      setDeleteLoading((prev) => ({ ...prev, [imageId]: false }));
+    }
+  };
+
+  const handleSetPrimary = async (imageId) => {
+    if (!onSetPrimary || !productId || !imageId) return;
+    setPrimaryLoading(imageId);
+    try {
+      await onSetPrimary(productId, imageId);
+    } finally {
+      setPrimaryLoading(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label htmlFor="product-images" className="text-sm font-medium text-stone-300">
+          Product Images
+        </label>
+        <span className="rounded-full bg-stone-700 px-2.5 py-1 text-xs text-stone-400">
+          Max 10 files, 5MB each
+        </span>
+      </div>
+
+      <div className="rounded-lg border border-stone-800 bg-[#0c0816] p-4 shadow-sm">
+        <input
+          id="product-images"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          multiple
+          disabled={disabled}
+          onChange={handleFileChange}
+          className="block w-full cursor-pointer rounded-lg border border-dashed border-stone-600 px-3 py-3 text-sm text-stone-300 transition hover:border-stone-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#b48a3c] file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-[#0c0816]"
+        />
+
+        {fileFeedback ? (
+          <p className="mt-3 text-xs font-medium text-amber-400">{fileFeedback}</p>
+        ) : null}
+
+        {!files.length && !existingImages.length ? (
+          <p className="mt-3 text-xs text-stone-400">No images selected yet.</p>
+        ) : null}
+
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {existingPreviews.map((preview) => (
+            <div
+              key={preview.key}
+              className={`group relative overflow-hidden rounded-lg border ${
+                preview.isPrimary
+                  ? "border-[#b48a3c] shadow-md shadow-[#b48a3c]/30"
+                  : "border-stone-800"
+              }`}
+            >
+              <button
+                type="button"
+                className="block h-28 w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-500"
+                onClick={() => setLightboxUrl(preview.url)}
+                aria-label={`View ${preview.name} full size`}
+              >
+                <img src={preview.url} alt={preview.name} className="h-full w-full object-cover" />
+              </button>
+
+              <div className="absolute inset-x-0 bottom-0 bg-black/70 p-2 text-[10px] text-white pointer-events-none">
+                <p className="truncate">{preview.name}</p>
+              </div>
+
+              {preview.isPrimary ? (
+                <div className="absolute left-1 top-1 rounded-md bg-[#b48a3c] px-2 py-1 text-[9px] font-bold text-[#0c0816] pointer-events-none">
+                  Primary
+                </div>
+              ) : null}
+
+              <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 transition group-focus-within:opacity-100 group-hover:opacity-100">
+                {!preview.isPrimary && onSetPrimary ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSetPrimary(preview.id)}
+                    disabled={primaryLoading === preview.id}
+                    className="rounded-md bg-stone-800/70 px-1.5 py-0.5 text-[10px] font-medium text-white transition hover:bg-[#b48a3c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {primaryLoading === preview.id ? "..." : "Primary"}
+                  </button>
+                ) : null}
+                {onDeleteImage ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteExistingImage(preview.id)}
+                    disabled={deleteLoading[preview.id]}
+                    className="rounded-md bg-stone-800/70 px-2 py-1 text-[10px] font-medium text-white transition hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {deleteLoading[preview.id] ? "..." : "Delete"}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ))}
+
+          {generatedPreviews.map((preview, idx) => (
+            <div
+              key={preview.key}
+              className="group relative overflow-hidden rounded-lg border border-stone-800"
+            >
+              <button
+                type="button"
+                className="block h-28 w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-500"
+                onClick={() => setLightboxUrl(preview.url)}
+                aria-label={`View ${preview.name} full size`}
+              >
+                <img src={preview.url} alt={preview.name} className="h-full w-full object-cover" />
+              </button>
+
+              <div className="absolute inset-x-0 bottom-0 bg-stone-800/70 p-2 text-[10px] text-white pointer-events-none">
+                <p className="truncate">{preview.name}</p>
+              </div>
+
+              <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 transition group-focus-within:opacity-100 group-hover:opacity-100">
+                <button
+                  type="button"
+                  onClick={() => removeFile(idx)}
+                  className="rounded-md bg-stone-800/70 px-2 py-1 text-[10px] font-medium text-white transition hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {disabled && !onDeleteImage ? (
+          <p className="mt-3 text-xs text-amber-400">
+            Image upload is only available when creating a product.
+          </p>
+        ) : null}
+      </div>
+
+      {lightboxUrl ? (
+        <div
+          ref={lightboxRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image preview"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80"
+          onClick={(e) => {
+            if (e.target === lightboxRef.current) setLightboxUrl(null);
+          }}
+        >
+          <div className="relative max-h-[75vh] max-w-[75vw]">
+            <button
+              type="button"
+              onClick={() => setLightboxUrl(null)}
+              className="absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-stone-800 text-red-400 shadow-md hover:bg-stone-700 transition"
+              aria-label="Close preview"
+            >
+              ✕
+            </button>
+            <img
+              src={lightboxUrl}
+              alt="Full size preview"
+              className="max-h-[75vh] max-w-[75vw] rounded-lg object-contain"
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
