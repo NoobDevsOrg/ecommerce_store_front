@@ -33,6 +33,18 @@ textarea {
   caret-color: auto;
 }
 
+/* Keep Chromium's native datetime-local picker affordance visible on the
+   dark Hero admin form without replacing or intercepting the native control. */
+.hero-datetime-input {
+  color-scheme: dark;
+}
+
+.hero-datetime-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(1) sepia(0.1) saturate(0.5) brightness(1.8);
+  opacity: 1;
+}
+
 .input {
   width: 100%;
   border-radius: 0.75rem;
