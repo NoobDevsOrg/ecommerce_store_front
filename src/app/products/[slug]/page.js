@@ -1,5 +1,5 @@
 import ProductDetailClient from "./ProductDetailClient";
-import { getPublicProductBySlug } from "../../../lib/publicApi";
+import { getPublicProductBySlug, PublicApiError } from "../../../lib/publicApi";
 import { getAbsoluteSiteUrl } from "../../../lib/siteUrl";
 import { notFound } from "next/navigation";
 
@@ -14,7 +14,7 @@ function getProductMetadata(product) {
   const primaryImage = getPrimaryImage(product);
   const title = product.meta_title?.trim() || `${product.name} | ${BRAND_NAME}`;
   const description = product.meta_desc?.trim() || product.description?.trim() || undefined;
-  const canonical = `/products/${product.slug}`;
+  const canonical = getAbsoluteSiteUrl(`/products/${product.slug}`);
 
   return {
     title: { absolute: title },
@@ -51,23 +51,29 @@ export async function generateMetadata({ params }) {
     }
 
     return getProductMetadata(product);
-  } catch {
-    return {
-      title: "Product Not Found",
-      robots: { index: false, follow: false },
-    };
+  } catch (error) {
+    if (error instanceof PublicApiError && error.status === 404) {
+      return {
+        title: "Product Not Found",
+        robots: { index: false, follow: false },
+      };
+    }
+
+    throw error;
   }
 
 }
 
 export default async function Page({ params }) {
   const { slug } = await params;
-  const product = await getPublicProductBySlug(slug);
-  // console.log("Product slug data hvsgdhsbdvjsd line 69", slug)
-
-  if (!product) {
-    notFound();
+  let product;
+  try {
+    product = await getPublicProductBySlug(slug);
+  } catch (error) {
+    if (error instanceof PublicApiError && error.status === 404) notFound();
+    throw error;
   }
+  if (!product) notFound();
 
   const primaryImage = getPrimaryImage(product);
   const canonicalUrl = getAbsoluteSiteUrl(`/products/${product.slug}`);

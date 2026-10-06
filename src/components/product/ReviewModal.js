@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import RatingStars from "./RatingStars"; 
 import { api } from "../../lib/api";
 
@@ -13,37 +13,32 @@ export default function ReviewsModal({
     const [averageRating, setAverageRating] = useState(0);
     const [reviewCount, setReviewCount] = useState(0);
 
+    const fetchReviews = useCallback(async () => {
+        try {
+            setLoading(true);
+
+            const response = await api.get(`/products/${product.id}/reviews`);
+            const payload = response?.data?.data ?? response?.data ?? response;
+
+            setReviews(payload?.reviews ?? []);
+            setAverageRating(payload?.averageRating ?? 0);
+            setReviewCount(payload?.totalReviews ?? 0);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, [product.id]);
+
     useEffect(() => {
-        fetchReviews();
+        void fetchReviews();
 
         document.body.style.overflow = "hidden";
 
         return () => {
             document.body.style.overflow = "auto";
         };
-    }, []);
-
-    const fetchReviews = async () => {
-        try {
-            setLoading(true);
-
-            const response = await api.get(`/products/${product.id}/reviews`);
-
-const payload =
-    response?.data?.data ??
-    response?.data ??
-    response;
-
-setReviews(payload?.reviews ?? []);
-setAverageRating(payload?.averageRating ?? 0);
-setReviewCount(payload?.totalReviews ?? 0);
-
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [fetchReviews]);
 
     return (
         <div

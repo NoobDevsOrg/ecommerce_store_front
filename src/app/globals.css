@@ -142,3 +142,34 @@ textarea {
     margin-left: 16rem;
   }
 }
+
+/* Desktop Admin pages use one content scroller below the fixed header. Touch
+   layouts keep native document scrolling to avoid trapping touch gestures. */
+@media (min-width: 1024px) {
+  body.admin-shell-active { overflow: hidden; }
+
+  .admin-main-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #8f743c #100c18;
+  }
+
+  .admin-main-scroll::-webkit-scrollbar { width: 9px; }
+  .admin-main-scroll::-webkit-scrollbar-track { background: #100c18; }
+  .admin-main-scroll::-webkit-scrollbar-thumb {
+    background: #786235;
+    border: 2px solid #100c18;
+    border-radius: 9999px;
+  }
+  .admin-main-scroll::-webkit-scrollbar-thumb:hover { background: #b48a3c; }
+}
+
+@keyframes payment-confetti-fall {
+  0% { opacity: 0; transform: translateY(-12px) rotate(0deg); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(90px) rotate(190deg); }
+}
+
+.payment-confetti { pointer-events: none; position: absolute; inset: 0; overflow: hidden; }
+.payment-confetti span { position: absolute; top: 8px; width: 7px; height: 13px; border-radius: 2px; background: #d4af37; animation: payment-confetti-fall 800ms ease-out forwards; }
+.payment-confetti span:nth-child(even) { background: #f5df96; }
+@media (prefers-reduced-motion: reduce) { .payment-confetti { display: none; } }

@@ -37,10 +37,10 @@ export default function BrandStatement() {
                     ref={quoteRef}
                     className="text-xl md:text-3xl lg:text-4xl font-serif text-white leading-relaxed mb-10 opacity-0"
                 >
-                    "Every piece of jewellery tells a story of{" "}
+                    &ldquo;Every piece of jewellery tells a story of{" "}
                     <span className="text-[#b48a3c]">devotion</span>, crafted for the
                     modern woman who carries{" "}
-                    <em className="italic text-[#d4af37]">tradition</em> in her heart."
+                    <em className="italic text-[#d4af37]">tradition</em> in her heart.&rdquo;
                 </blockquote>
 
                 {/* Bottom line */}

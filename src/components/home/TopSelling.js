@@ -321,6 +321,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGsapReveal } from "../../app/hooks/useGsapAnimations";
 import { api } from "../../lib/api";
+import { productHref } from "../../lib/productUrl";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -357,7 +358,7 @@ function TrackCard({ product, getIsDrag }) {
 
   return (
     <Link
-      href={`/products/${product.slug}`}
+      href={productHref(product)}
       onClick={handleClick}
       draggable={false}
       className="relative flex-shrink-0 block"
@@ -458,21 +459,24 @@ function GoldScrollbar({ getProgress, setProgress, onInteractStart, onInteractEn
   const rafRef = useRef(null);
   const drag = useRef({ active: false, startClient: 0, startLeft: 0 });
 
-  const syncThumb = useCallback(() => {
-    const bar = barRef.current;
-    const thumb = thumbRef.current;
-    if (bar && thumb) {
-      const progress = getProgress();
-      const maxLeft = bar.offsetWidth - thumb.offsetWidth;
-      thumb.style.transform = `translateX(${progress * maxLeft}px)`;
-    }
-    rafRef.current = requestAnimationFrame(syncThumb);
-  }, [getProgress]);
-
   useEffect(() => {
-    rafRef.current = requestAnimationFrame(syncThumb);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [syncThumb]);
+    let frameId;
+    const syncThumb = () => {
+      const bar = barRef.current;
+      const thumb = thumbRef.current;
+      if (bar && thumb) {
+        const progress = getProgress();
+        const maxLeft = bar.offsetWidth - thumb.offsetWidth;
+        thumb.style.transform = `translateX(${progress * maxLeft}px)`;
+      }
+      frameId = requestAnimationFrame(syncThumb);
+      rafRef.current = frameId;
+    };
+
+    frameId = requestAnimationFrame(syncThumb);
+    rafRef.current = frameId;
+    return () => cancelAnimationFrame(frameId);
+  }, [getProgress]);
 
   const getClientX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
 

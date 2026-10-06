@@ -26,6 +26,8 @@ const emptyForm = {
   description: "",
   is_published: false,
   is_featured: false,
+  is_purchasable: true,
+  is_enquiry_enabled: true,
 };
 
 const slugify = (value) =>
@@ -65,6 +67,8 @@ export default function ProductForm({
       description: initialValues.description || "",
       is_published: Boolean(initialValues.is_published),
       is_featured: Boolean(initialValues.is_featured),
+      is_purchasable: initialValues.is_purchasable !== false,
+      is_enquiry_enabled: initialValues.is_enquiry_enabled !== false,
       primary_image_storage_path: initialValues.primary_image_storage_path || "",
     };
   });
@@ -184,6 +188,8 @@ export default function ProductForm({
 
     payload.append("is_published", String(form.is_published));
     payload.append("is_featured", String(form.is_featured));
+    payload.append("is_purchasable", String(form.is_purchasable));
+    payload.append("is_enquiry_enabled", String(form.is_enquiry_enabled));
 
     images.forEach((file) => payload.append("images", file));
 
@@ -201,6 +207,8 @@ export default function ProductForm({
     description: form.description.trim() || undefined,
     is_published: form.is_published,
     is_featured: form.is_featured,
+    is_purchasable: form.is_purchasable,
+    is_enquiry_enabled: form.is_enquiry_enabled,
   });
 
   const handleSubmit = async (event) => {
@@ -507,6 +515,22 @@ export default function ProductForm({
             description="Highlight this product in key merchandising sections."
             checked={form.is_featured}
             onChange={(checked) => update("is_featured", checked)}
+            disabled={isSubmitting || readOnly}
+          />
+          <ToggleField
+            id="product-online-purchase"
+            label="Enable Online Purchase"
+            description="Shows Add to Cart and Buy Now when a valid selling price is set. Stock is managed separately."
+            checked={form.is_purchasable}
+            onChange={(checked) => update("is_purchasable", checked)}
+            disabled={isSubmitting || readOnly}
+          />
+          <ToggleField
+            id="product-enquiry-enabled"
+            label="Enable Enquiries"
+            description="Allows shoppers to request a quote for this product."
+            checked={form.is_enquiry_enabled}
+            onChange={(checked) => update("is_enquiry_enabled", checked)}
             disabled={isSubmitting || readOnly}
           />
         </div>

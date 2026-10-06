@@ -2,19 +2,35 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard" },
     { label: "Product Onboarding", href: "/admin/products" },
     { label: "Hero Banners", href: "/admin/products/hero-banners" },
+    { label: "Customer Testimonials", href: "/admin/testimonials" },
     { label: "Client Details", href: "/admin/clients" },
     { label: "Order Details", href: "/admin/orders" },
+    { label: "Payments", href: "/admin/payments" },
+    { label: "Inventory", href: "/admin/inventory" },
+    { label: "Notifications", href: "/admin/notifications" },
+    { label: "Audit Trail", href: "/admin/audit-logs" },
+    { label: "System Logs", href: "/admin/system-logs" },
     { label: "Enquiry Details", href: "/admin/enquiries" },
     { label: "Review Management", href: "/admin/reviews" },
+    { label: "Integrations", href: "/admin/integrations" },
+    { label: "Shipping Settings", href: "/admin/shipping" },
 ];
 
 export default function AdminSidebar({ open, setOpen }) {
     const pathname = usePathname();
+
+    useEffect(() => {
+        if (!open) return undefined;
+        const closeOnEscape = (event) => { if (event.key === "Escape") setOpen(false); };
+        document.addEventListener("keydown", closeOnEscape);
+        return () => document.removeEventListener("keydown", closeOnEscape);
+    }, [open, setOpen]);
 
     return (
         <>
@@ -26,8 +42,11 @@ export default function AdminSidebar({ open, setOpen }) {
             />
 
             <aside
+           role="dialog"
+           aria-modal="true"
+           aria-label="Admin navigation"
            className={`
-    fixed
+    fixed flex flex-col
     left-0
     top-[70px]
     h-[calc(100vh-70px)]

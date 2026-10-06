@@ -2,31 +2,31 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getToken } from "../../lib/auth";
+import { clearCustomerLogoutState, CUSTOMER_AUTH_EVENT, getStoredCustomer } from "../../lib/customerAuth";
 import { getCart } from "../../store/cartStore";
 import AdminSidebar from "./AdminSidebar";
 import { api } from "lib/api";
+import { clearNotificationCount, useNotificationCount } from "../../lib/notificationCount";
 
-export default function Header() {
+function HeaderContent() {
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState(null);
+  const [customer, setCustomer] = useState(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
+  const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-  const [enquiryCount, setEnquiryCount] = useState(0);
-  const hasLoadedEnquiryCountRef = useRef(false);
+  const { count: customerNotificationCount } = useNotificationCount("customer", Boolean(customer && !isAdminAuthenticated));
+  const { count: adminNotificationCount } = useNotificationCount("admin", Boolean(isAdminAuthenticated));
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("theme");
-    const dark = savedTheme === "dark";
-    setIsDarkTheme(dark);
-    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.classList.toggle("dark", savedTheme === "dark");
 
     const updateCart = () => {
       const cart = getCart();
@@ -43,10 +43,14 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
       setUser(storedUser);
     };
 
-   const syncAdminAuth = () => {
-    const isAuthed = Boolean(getToken());
-    setIsAdminAuthenticated(isAuthed);
-};
+    const syncAdminAuth = () => {
+      const isAuthed = Boolean(getToken());
+      setIsAdminAuthenticated(isAuthed);
+    };
+
+    const syncCustomerAuth = () => {
+      setCustomer(getStoredCustomer());
+    };
 
 
 
@@ -56,18 +60,25 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
     handleScroll();
     updateCart();
     syncAdminAuth();
+    syncCustomerAuth();
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("cartUpdated", updateCart);
+    window.addEventListener("storage", updateCart);
     window.addEventListener("userUpdated", updateUser);
     window.addEventListener("userUpdated", syncAdminAuth);
     window.addEventListener("storage", syncAdminAuth);
+    window.addEventListener(CUSTOMER_AUTH_EVENT, syncCustomerAuth);
+    window.addEventListener("storage", syncCustomerAuth);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("cartUpdated", updateCart);
+      window.removeEventListener("storage", updateCart);
       window.removeEventListener("userUpdated", updateUser);
       window.removeEventListener("userUpdated", syncAdminAuth);
       window.removeEventListener("storage", syncAdminAuth);
+      window.removeEventListener(CUSTOMER_AUTH_EVENT, syncCustomerAuth);
+      window.removeEventListener("storage", syncCustomerAuth);
     };
   }, []);
 
@@ -89,7 +100,27 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
     };
   }, [isAdminAuthenticated, adminSidebarOpen]);
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) return undefined;
+    const originalOverflow = document.body.style.overflow;
+    const originalRootOverflow = document.documentElement.style.overflow;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setIsMobileMenuOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.documentElement.style.overflow = originalRootOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isMobileMenuOpen]);
+
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlSearchQuery = searchParams.get("q") || "";
 
   const handleLogout = () => {
     localStorage.removeItem("admin_token");
@@ -100,54 +131,39 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
     setIsAdminAuthenticated(false);
     setAdminSidebarOpen(false);
     setShowDropdown(false);
+    clearNotificationCount("admin");
     // Notify other components that user state has changed
     window.dispatchEvent(new Event("userUpdated"));
   };
 
-  useEffect(() => {
-    if (!isAdminAuthenticated) {
-      hasLoadedEnquiryCountRef.current = false;
-      return undefined;
+  const handleCustomerLogout = async () => {
+    try {
+      await api.customerAuth.logout();
+    } finally {
+      clearCustomerLogoutState();
+      clearNotificationCount("customer");
+      setCustomer(null);
+      setShowDropdown(false);
+      setIsMobileMenuOpen(false);
+      router.replace("/");
+      router.refresh();
     }
-
-    const fetchEnquiryCount = async () => {
-      try {
-        const res = await api.get("/products/enquiries/count?status=new");
-        console.log("notif res count header", res)
-        setEnquiryCount(res?.data?.count || 0);
-      } catch (err) {
-        console.error("Failed to fetch enquiry count", err?.message);
-      }
-    };
-
-    if (!hasLoadedEnquiryCountRef.current) {
-      hasLoadedEnquiryCountRef.current = true;
-      fetchEnquiryCount();
-    }
-
-    // listen for manual refresh events (after status update)
-    const handleRefresh = () => fetchEnquiryCount();
-    window.addEventListener("enquiryUpdated", handleRefresh);
-
-    return () => {
-      window.removeEventListener("enquiryUpdated", handleRefresh);
-    };
-  }, [isAdminAuthenticated]);
+  };
 
   const handleSearch = (event) => {
     event.preventDefault();
-    if (!searchQuery.trim()) {
+    const query = searchQuery.trim();
+    if (!query) {
       return;
     }
-    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    router.push(`/search?q=${encodeURIComponent(query)}`);
   };
 
-  const handleThemeToggle = () => {
-    const next = !isDarkTheme;
-    setIsDarkTheme(next);
-    document.documentElement.classList.toggle("dark", next);
-    window.localStorage.setItem("theme", next ? "dark" : "light");
-  };
+  useEffect(() => {
+    if (pathname === "/search") {
+      setSearchQuery(urlSearchQuery);
+    }
+  }, [pathname, urlSearchQuery]);
 
   const navLinks = [
     { name: "Products", href: "/products" },
@@ -165,7 +181,7 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
           : "bg-[#0c0816] border-b border-transparent shadow-none"
           }`}
       >
-        <div className="max-w-[1300px] mx-auto px-6 md:px-10 flex items-center justify-between">
+        <div className="mx-auto flex max-w-[1300px] items-center justify-between px-3 sm:px-6 md:px-10">
 
           <div className="flex items-center gap-3">
             {isAdminAuthenticated ? (
@@ -192,6 +208,7 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
                   src="/sagunthala_logo2.jpg"
                   alt="Sagunthala Jewellers"
                   fill
+                  sizes="(max-width: 768px) 40px, 44px"
                   priority
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
@@ -202,7 +219,7 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
                   Sagunthala
                 </h1>
                 <p className="text-[9px] uppercase tracking-[0.35em] text-[#b48a3c] font-semibold">
-                  Dance Jewellers
+                  Dance Jewellery
                 </p>
               </div>
             </Link>
@@ -223,7 +240,7 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
           </nav>
 
           {/* Right Section */}
-          <div className="flex items-center gap-4 md:gap-6 relative z-[110]">
+          <div className="relative z-[110] flex items-center gap-1 sm:gap-4 md:gap-6">
 
             {/* Search */}
             <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2 bg-[#1b1728] border border-stone-800 rounded-full px-3 py-2">
@@ -237,13 +254,10 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
             </form>
 
             {/* Theme Toggle */}
-            {/* <button onClick={handleThemeToggle} className="hidden md:inline-flex items-center justify-center w-9 h-9 rounded-full border border-stone-800 text-stone-200 hover:text-[#b48a3c]">
-              {isDarkTheme ? "☀️" : "🌙"}
-            </button> */}
 
             {/* Auth */}
             <div className="relative hidden sm:block dropdown-container">
-              {user ? (
+              {isAdminAuthenticated && user ? (
                 <div>
                   <button
                     onClick={() => setShowDropdown(!showDropdown)}
@@ -270,6 +284,16 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
                     </div>
                   )}
                 </div>
+              ) : customer ? (
+                <div>
+                  <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="flex items-center gap-3 text-[11px] font-semibold text-stone-200">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-[#b48a3c] to-[#e6c76a] text-[11px] font-bold text-[#0f0a1a] shadow-md">
+                      {(customer.fullName || customer.email || "U").charAt(0).toUpperCase()}
+                    </span>
+                    <span className="max-w-[100px] truncate">{customer.fullName || customer.email || "Account"}</span>
+                  </button>
+                  {showDropdown ? <div className="absolute right-0 mt-3 w-44 overflow-hidden rounded-md border border-stone-800 bg-[#161022] shadow-xl"><Link href="/account" onClick={() => setShowDropdown(false)} className="block px-5 py-3 text-xs text-stone-200 hover:bg-stone-800">My Account</Link><Link href="/account/orders" onClick={() => setShowDropdown(false)} className="block px-5 py-3 text-xs text-stone-200 hover:bg-stone-800">My Orders</Link><Link href="/account/notifications" onClick={() => setShowDropdown(false)} className="block px-5 py-3 text-xs text-stone-200 hover:bg-stone-800">Notifications</Link><Link href="/account#saved-addresses" onClick={() => setShowDropdown(false)} className="block px-5 py-3 text-xs text-stone-200 hover:bg-stone-800">Saved Addresses</Link><button type="button" onClick={handleCustomerLogout} className="w-full border-t border-stone-800 px-5 py-3 text-left text-xs text-red-300 hover:bg-red-500/5">Logout</button></div> : null}
+                </div>
               ) : (
                 <Link
                   href="/login"
@@ -281,33 +305,18 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
             </div>
             {isAdminAuthenticated && (
               <button
-                onClick={() => router.push("/admin/enquiries")}
+                type="button"
+                onClick={() => router.push("/admin/notifications")}
                 className="relative group p-2"
-                aria-label="View enquiries"
+                aria-label={`Notifications${adminNotificationCount ? `, ${adminNotificationCount} unread` : ""}`}
               >
-                <svg
-                  className="w-6 h-6 text-stone-200 group-hover:text-[#d4af37] transition-colors"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="1.5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0018 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 00-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-                  />
-                </svg>
-
-                {enquiryCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center px-1 bg-red-500 text-[10px] font-bold text-white rounded-full ring-2 ring-[#0c0816]">
-                    {enquiryCount > 99 ? "99+" : enquiryCount}
-                  </span>
-                )}
+                <svg className="w-6 h-6 text-stone-200 group-hover:text-[#d4af37] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0018 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 00-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+                {adminNotificationCount > 0 ? <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-[#0c0816]">{adminNotificationCount > 99 ? "99+" : adminNotificationCount}</span> : null}
               </button>
             )}
+            {customer && !isAdminAuthenticated ? <><Link href="/account/notifications" className="relative p-2 text-stone-200 hover:text-[#d4af37]" aria-label={`Notifications${customerNotificationCount ? `, ${customerNotificationCount} unread` : ""}`}><svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0018 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 00-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>{customerNotificationCount > 0 ? <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-[#0c0816]">{customerNotificationCount > 99 ? "99+" : customerNotificationCount}</span> : null}</Link><Link href="/account/orders" className="hidden p-2 text-stone-200 hover:text-[#d4af37] sm:block" aria-label="My Orders"><svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h11.25m-11.25 4.5h11.25m-11.25 4.5h6.75M4.5 6.75h.008v.008H4.5V6.75zm0 4.5h.008v.008H4.5v-.008zm0 4.5h.008v.008H4.5v-.008z" /></svg></Link></> : null}
             {/* Cart */}
-            <Link href="/cart" className="relative group p-2">
+            <Link href="/cart" className="relative inline-flex h-11 w-11 items-center justify-center" aria-label={`Shopping bag${cartCount ? `, ${cartCount} item${cartCount === 1 ? "" : "s"}` : ""}`}>
               <svg
                 className="w-6 h-6 text-stone-200 group-hover:text-[#d4af37] transition-colors"
                 fill="none"
@@ -328,8 +337,11 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
             {/* Mobile Toggle */}
             {!isAdminAuthenticated ? (
               <button
-                className="lg:hidden p-2 text-stone-200 hover:text-[#d4af37]"
+                className="inline-flex h-11 w-11 items-center justify-center text-stone-200 hover:text-[#d4af37] lg:hidden"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="customer-mobile-menu"
               >
                 <svg
                   className="w-6 h-6"
@@ -354,24 +366,30 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
 
       {/* Mobile Menu */}
       <div
-        className={`fixed inset-0 z-[90] bg-[#0c0816] transition-all duration-500 lg:hidden ${isMobileMenuOpen
+        id="customer-mobile-menu"
+        className={`fixed inset-0 z-[90] overflow-y-auto bg-[#0c0816] transition-all duration-500 lg:hidden ${isMobileMenuOpen
           ? "opacity-100 translate-y-0"
           : "opacity-0 -translate-y-full pointer-events-none"
           }`}
       >
-        <div className="flex flex-col items-center justify-center h-full gap-10">
+        <div className="flex min-h-full flex-col items-center justify-center gap-7 px-6 py-24">
+          <form onSubmit={(event) => { handleSearch(event); setIsMobileMenuOpen(false); }} className="flex w-full max-w-sm items-center rounded-xl border border-stone-700 bg-[#161022] p-1">
+            <label className="sr-only" htmlFor="mobile-product-search">Search products</label>
+            <input id="mobile-product-search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search jewellery" className="min-w-0 flex-1 bg-transparent px-3 py-2 text-base text-stone-100 placeholder:text-stone-500 focus:outline-none" />
+            <button type="submit" className="min-h-11 rounded-lg bg-[#d4af37] px-4 text-xs font-bold uppercase tracking-wider text-[#0f0a1a]">Search</button>
+          </form>
           {navLinks.map((item) => (
             <Link
               key={item.name}
               href={item.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="text-2xl font-serif text-white hover:text-[#d4af37]"
+              className="inline-flex min-h-11 items-center px-4 text-2xl font-serif text-white hover:text-[#d4af37]"
             >
               {item.name}
             </Link>
           ))}
 
-          {user ? (
+          {isAdminAuthenticated && user ? (
             <button
               onClick={() => {
                 handleLogout();
@@ -381,6 +399,8 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
             >
               Logout
             </button>
+          ) : customer ? (
+            <div className="flex flex-col items-center gap-5 text-[12px] uppercase tracking-[0.3em] text-[#b48a3c]"><Link href="/account" onClick={() => setIsMobileMenuOpen(false)}>My account</Link><Link href="/account/orders" onClick={() => setIsMobileMenuOpen(false)}>My orders</Link><Link href="/account#saved-addresses" onClick={() => setIsMobileMenuOpen(false)}>Saved addresses</Link><button type="button" onClick={() => { handleCustomerLogout(); setIsMobileMenuOpen(false); }} className="text-red-300">Logout</button></div>
           ) : (
             <Link
               href="/login"
@@ -393,5 +413,13 @@ const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
         </div>
       </div>
     </>
+  );
+}
+
+export default function Header() {
+  return (
+    <Suspense fallback={<div aria-hidden="true" className="h-[70px] w-full" />}>
+      <HeaderContent />
+    </Suspense>
   );
 }

@@ -1,0 +1,18 @@
+"use client";
+
+const STEPS = [
+  { status: "CONFIRMED", label: "Order confirmed", message: "Your order has been received and confirmed." },
+  { status: "PROCESSING", label: "We're preparing your order", message: "Our team is carefully preparing your jewellery." },
+  { status: "SHIPPED", label: "Your order is on the way", message: "Your order has been handed to the courier." },
+  { status: "DELIVERED", label: "Delivered", message: "Your order has been delivered." },
+];
+
+const formatDateTime = (value) => value ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : null;
+const formatDate = (value) => value ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(value)) : null;
+
+export default function CustomerOrderTimeline({ order }) {
+  const currentIndex = Math.max(0, STEPS.findIndex((step) => step.status === order.status));
+  const history = new Map((order.statusHistory || []).filter((entry) => entry?.toStatus).map((entry) => [entry.toStatus, entry]));
+
+  return <section className="mt-6 rounded-xl border border-stone-800 bg-[#161022] p-6" aria-labelledby="order-progress-heading"><p className="text-xs uppercase tracking-[0.28em] text-[#d4af37]">Order progress</p><h3 id="order-progress-heading" className="mt-2 font-serif text-2xl text-white">Where your order is</h3><div className="mt-7">{STEPS.map((step, index) => { const completed = index < currentIndex; const current = index === currentIndex; const occurred = completed || current; const timestamp = history.get(step.status)?.createdAt; const showShipment = step.status === "SHIPPED" && occurred; return <div key={step.status} className="relative min-h-24 pl-12 last:min-h-0"><div className={`absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full border ${completed ? "border-[#d4af37] bg-[#d4af37] text-[#0f0a1a]" : current ? "border-[#d4af37] bg-[#2d220f] text-[#edca65] ring-4 ring-[#d4af37]/15" : "border-stone-700 bg-[#120f1d] text-stone-600"}`}>{completed ? <svg aria-label="Completed" className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" /></svg> : <span aria-hidden="true" className={current ? "h-2.5 w-2.5 rounded-full bg-[#d4af37]" : "h-2 w-2 rounded-full bg-stone-700"} />}</div>{index < STEPS.length - 1 ? <span aria-hidden="true" className={`absolute left-[15px] top-8 h-[calc(100%-2rem)] w-px ${completed ? "bg-[#d4af37]" : "bg-stone-800"}`} /> : null}<div className="pb-7"><p className={`font-semibold ${current ? "text-white" : completed ? "text-stone-200" : "text-stone-500"}`}>{step.label}</p>{current ? <p className="mt-1 text-sm text-stone-400">{step.message}</p> : null}{timestamp ? <p className="mt-1 text-sm text-stone-500">{formatDateTime(timestamp)}</p> : null}{showShipment && (order.courierName || order.trackingNumber || order.dispatchedAt || order.expectedDeliveryDate) ? <div className="mt-3 rounded-lg border border-[#b48a3c]/25 bg-[#120f1d] p-3 text-sm text-stone-300">{order.courierName ? <p>{order.courierName}</p> : null}{order.trackingNumber ? <p className="mt-1">Tracking: {order.trackingUrl ? <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="text-[#d4af37] underline underline-offset-4">{order.trackingNumber}</a> : order.trackingNumber}</p> : null}{order.dispatchedAt ? <p className="mt-1 text-stone-500">Dispatched {formatDate(order.dispatchedAt)}</p> : null}{order.expectedDeliveryDate ? <p className="mt-1 text-stone-500">Expected {formatDate(order.expectedDeliveryDate)}</p> : null}</div> : null}</div></div>; })}</div></section>;
+}

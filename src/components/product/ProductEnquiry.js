@@ -30,7 +30,7 @@ function FloatingInput({ id, label, type = "text", value, onChange, required, er
                     width: "100%",
                     padding: "22px 0 8px",
                     color: "#f5f0e8",
-                    fontSize: "14px",
+                    fontSize: "16px",
                     letterSpacing: "0.3px",
                     transition: "border-color 0.25s ease",
                     cursor: disabled ? "not-allowed" : "text",
@@ -90,7 +90,7 @@ function FloatingTextarea({ id, label, value, onChange, error, disabled }) {
                     width: "100%",
                     padding: "22px 0 8px",
                     color: "#f5f0e8",
-                    fontSize: "14px",
+                    fontSize: "16px",
                     letterSpacing: "0.3px",
                     resize: "none",
                     fontFamily: "inherit",
@@ -130,86 +130,47 @@ const INITIAL_FORM = {
     whatsappNumber: "",
 };
 
-export default function EnquiryModal({ isOpen, onClose, productId, productName, products = [], onRemove, onSuccess }) {
-    const { status, errorMessage, fieldErrors, submit, reset } = useEnquiry();
-
-    const [form, setForm] = useState({
+function initialForm(productId, productName, products) {
+    return {
         ...INITIAL_FORM,
-        products:
-            products.length > 0
-                ? products
-                : productId
-                    ? [
-                        {
-                            id: productId,
-                            name: productName,
-                            quantity: 1,
-                        },
-                    ]
-                    : [],
-    });
-    const [visible, setVisible] = useState(false);
-    const [mounted, setMounted] = useState(false);
+        products: products.length > 0
+            ? products
+            : productId
+                ? [{ id: productId, name: productName, quantity: 1 }]
+                : [],
+    };
+}
+
+export default function EnquiryModal({ isOpen, ...props }) {
+    if (!isOpen) return null;
+
+    const productKey = props.products?.length > 0
+        ? props.products.map((product) => product.id).join("|")
+        : props.productId || "general";
+
+    return <EnquiryDialog key={productKey} {...props} />;
+}
+
+function EnquiryDialog({ onClose, productId, productName, products = [], onRemove, onSuccess }) {
+    const { status, errorMessage, fieldErrors, submit } = useEnquiry();
+    const [form, setForm] = useState(() => initialForm(productId, productName, products));
     const overlayRef = useRef(null);
     const firstInputRef = useRef(null);
-
-    // Sync product info when props change
-    useEffect(() => {
-        if (isOpen) {
-            setForm((prev) => ({ ...prev, productId, productName }));
-        }
-    }, [isOpen, productId, productName]);
-
-    // Animation lifecycle
-    useEffect(() => {
-        if (!isOpen) return;
-
-        if (products.length > 0) {
-            setForm((prev) => ({
-                ...prev,
-                products,
-            }));
-        } else if (productId) {
-            setForm((prev) => ({
-                ...prev,
-                products: [
-                    {
-                        id: productId,
-                        name: productName,
-                        quantity: 1,
-                    },
-                ],
-            }));
-        }
-    }, [isOpen, products, productId, productName]);
 
     // ESC key to close
     useEffect(() => {
         function handleKey(e) {
-            if (e.key === "Escape" && isOpen) onClose();
+            if (e.key === "Escape") onClose();
         }
         document.addEventListener("keydown", handleKey);
         return () => document.removeEventListener("keydown", handleKey);
-    }, [isOpen, onClose]);
-
-    useEffect(() => {
-        if (isOpen) {
-            setMounted(true);
-            const t = setTimeout(() => setVisible(true), 10);
-            return () => clearTimeout(t);
-        } else {
-            setVisible(false);
-            const t = setTimeout(() => setMounted(false), 350);
-            return () => clearTimeout(t);
-        }
-    }, [isOpen]);
+    }, [onClose]);
 
     // Auto-focus first input
     useEffect(() => {
-        if (visible) {
-            setTimeout(() => firstInputRef.current && firstInputRef.current.focus(), 100);
-        }
-    }, [visible]);
+        const timer = window.setTimeout(() => firstInputRef.current?.focus(), 100);
+        return () => window.clearTimeout(timer);
+    }, []);
 
     const handleOverlayClick = useCallback(
         (e) => {
@@ -329,20 +290,16 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName, 
         return server ? server[0] : undefined;
     }
 
-    if (!mounted) return null;
-
     return (
         <>
             <style>{`
         @keyframes eq-fade-in { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes eq-fade-out { from { opacity: 1 } to { opacity: 0 } }
         @keyframes eq-slide-up { from { opacity: 0; transform: translateY(24px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
-        @keyframes eq-slide-down { from { opacity: 1; transform: translateY(0) scale(1) } to { opacity: 0; transform: translateY(16px) scale(0.98) } }
         @keyframes eq-wa-reveal { from { opacity: 0; transform: translateY(-8px) } to { opacity: 1; transform: translateY(0) } }
         @keyframes eq-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
         @keyframes eq-check { from { stroke-dashoffset: 50 } to { stroke-dashoffset: 0 } }
-        .eq-overlay { animation: ${visible ? "eq-fade-in 0.3s ease forwards" : "eq-fade-out 0.35s ease forwards"}; }
-        .eq-panel { animation: ${visible ? "eq-slide-up 0.35s cubic-bezier(0.22,1,0.36,1) forwards" : "eq-slide-down 0.3s ease forwards"}; }
+        .eq-overlay { animation: eq-fade-in 0.3s ease forwards; }
+        .eq-panel { animation: eq-slide-up 0.35s cubic-bezier(0.22,1,0.36,1) forwards; }
         .eq-wa-field { animation: eq-wa-reveal 0.25s ease forwards; }
         .eq-spinner { animation: eq-spin 0.8s linear infinite; }
         .eq-checkmark { stroke-dasharray: 50; stroke-dashoffset: 50; animation: eq-check 0.5s ease 0.1s forwards; }
@@ -408,7 +365,9 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName, 
                             color: "#5a5048",
                             fontSize: "20px",
                             lineHeight: 1,
-                            padding: "4px",
+                            width: "44px",
+                            height: "44px",
+                            padding: 0,
                             zIndex: 1,
                         }}
                     >
@@ -453,7 +412,7 @@ export default function EnquiryModal({ isOpen, onClose, productId, productName, 
                             <p style={{ margin: "0 0 10px", color: "#c9a96e", fontSize: "10px", letterSpacing: "4px", textTransform: "uppercase" }}>Received</p>
                             <h3 style={{ margin: "0 0 14px", color: "#f5f0e8", fontSize: "20px", fontWeight: 400, fontFamily: "Georgia, serif" }}>Thank You</h3>
                             <p style={{ margin: "0 0 32px", color: "#7a7068", fontSize: "13px", lineHeight: 1.8 }}>
-                                We've received your enquiry for
+                                We&apos;ve received your enquiry for
                                 <span style={{ color: "#c9a96e" }}>
                                     {form.products.length} product
                                     {form.products.length > 1 ? "s" : ""}

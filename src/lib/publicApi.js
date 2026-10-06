@@ -3,8 +3,8 @@
  * Used for product listing and detail pages (no auth required)
  */
 
-// const BASE_URL = "http://localhost:5000";
-const BASE_URL = "https://ecommerce-api-rgf0.onrender.com";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL
+  || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "");
 
 export class PublicApiError extends Error {
   constructor(message, status, payload) {
@@ -33,6 +33,9 @@ function extractMessage(payload, fallback) {
  * Generic fetch wrapper for public endpoints
  */
 async function publicFetch(endpoint, options = {}) {
+  if (!BASE_URL) {
+    throw new PublicApiError("The catalogue is temporarily unavailable.", 503);
+  }
   const url = `${BASE_URL}${endpoint}`;
 
   try {
@@ -88,18 +91,9 @@ export async function getPublicProductById(productId) {
 }
 
 /**
- * Helper to get product by slug (fetches all and filters locally)
- * Useful for URL routing with slugs
+ * Fetch the canonical tenant-scoped product resource by the database slug.
  */
 export async function getPublicProductBySlug(slug) {
-  const data = await getPublicProducts(1, 100); // Fetch larger limit to find slug
-  const product = data.products.find((p) => p.slug === slug);
-
-  if (!product) {
-    throw new PublicApiError("Product not found", 404);
-  }
-
-  // Resolve the existing public detail resource so the page receives image
-  // alt text, metadata fields, stock, and SKU without duplicating product data.
-  return getPublicProductById(product.id);
+  const response = await publicFetch(`/products/public/products/slug/${encodeURIComponent(slug)}`);
+  return response.data;
 }

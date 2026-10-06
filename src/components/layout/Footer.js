@@ -53,7 +53,7 @@ export default function Footer() {
             <ul className="space-y-3">
               {['Temple Jewellery', 'Bridal Sets', 'Gold Coins', 'Diamond Vault'].map(link => (
                 <li key={link}>
-                  <Link href="#" className="text-stone-400 text-sm font-light hover:text-[#b48a3c] transition-colors">{link}</Link>
+                  <span className="text-stone-500 text-sm font-light">{link}</span>
                 </li>
               ))}
             </ul>
@@ -65,7 +65,7 @@ export default function Footer() {
             <ul className="space-y-3">
               {['Privacy Policy', 'Refund Policy', 'Terms & Conditions', 'Shipping Info'].map(link => (
                 <li key={link}>
-                  <Link href="#" className="text-stone-400 text-sm font-light hover:text-[#b48a3c] transition-colors">{link}</Link>
+                  <span className="text-stone-500 text-sm font-light">{link}</span>
                 </li>
               ))}
             </ul>

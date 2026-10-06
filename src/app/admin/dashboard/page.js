@@ -1,44 +1,89 @@
 "use client";
 
+import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../../components/layout/AdminLayout";
+import DateRangeFilter from "../../../components/admin/DateRangeFilter";
+import { api } from "../../../lib/api";
 
-export default function AdminDashboardPage() {
-  return (
-    <AdminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-          <p className="mt-2 text-stone-400">Welcome to your admin dashboard</p>
-        </div>
+const ADMIN_TIME_ZONE = "Asia/Kolkata";
+const money = (value) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(value || 0));
+const whole = (value) => new Intl.NumberFormat("en-IN").format(Number(value || 0));
+const trendDate = (value, granularity) => new Intl.DateTimeFormat("en-GB", { timeZone: ADMIN_TIME_ZONE, ...(granularity === "MONTH" ? { month: "short", year: "numeric" } : { day: "numeric", month: "short" }) }).format(new Date(`${value}T00:00:00.000Z`));
+const today = () => {
+  const entries = new Intl.DateTimeFormat("en-CA", { timeZone: ADMIN_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date()).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]);
+  const parts = Object.fromEntries(entries);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
+const shift = (iso, amount) => { const date = new Date(`${iso}T00:00:00.000Z`); date.setUTCDate(date.getUTCDate() + amount); return date.toISOString().slice(0, 10); };
+const monthStart = (iso) => `${iso.slice(0, 8)}01`;
+const presets = () => { const end = today(); return { today: { label: "Today", from: end, to: end }, yesterday: { label: "Yesterday", from: shift(end, -1), to: shift(end, -1) }, last7: { label: "Last 7 days", from: shift(end, -6), to: end }, last30: { label: "Last 30 days", from: shift(end, -29), to: end }, month: { label: "This month", from: monthStart(end), to: end } }; };
+const query = (path, values = {}) => { const params = new URLSearchParams(Object.entries(values).filter(([, value]) => value !== undefined && value !== null && value !== "")); const suffix = params.toString(); return suffix ? `${path}?${suffix}` : path; };
+const statusClass = (status) => ({ PAID: "bg-emerald-400/10 text-emerald-200", DELIVERED: "bg-emerald-400/10 text-emerald-200", SHIPPED: "bg-sky-400/10 text-sky-200", PROCESSING: "bg-amber-400/10 text-amber-100", CONFIRMED: "bg-[#d4af37]/10 text-[#edca65]", CREATED: "bg-stone-700/50 text-stone-200", PENDING: "bg-stone-700/50 text-stone-200", FAILED: "bg-rose-400/10 text-rose-200", REQUIRES_RECONCILIATION: "bg-rose-400/10 text-rose-200", REFUNDED: "bg-violet-400/10 text-violet-200", new: "bg-amber-400/10 text-amber-100", contacted: "bg-sky-400/10 text-sky-200", closed: "bg-emerald-400/10 text-emerald-200" }[status] || "bg-stone-700/50 text-stone-200");
 
-        {/* Dashboard Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <DashboardCard title="Total Products" value="0" icon="📦" />
-          <DashboardCard title="Total Clients" value="0" icon="👥" />
-          <DashboardCard title="Total Orders" value="0" icon="📋" />
-          <DashboardCard title="Enquiries" value="0" icon="💬" />
-        </div>
-
-        {/* Empty State */}
-        <div className="rounded-lg border border-stone-800 bg-[#0c0816] p-12 text-center">
-          <p className="text-stone-400">Start by managing your products, clients, and orders from the sidebar.</p>
-        </div>
-      </div>
-    </AdminLayout>
-  );
+function Icon({ name }) {
+  const paths = {
+    revenue: <><path d="M3 3v18h18" /><path d="m7 14 4-4 3 3 6-7" /></>, orders: <><path d="M6 2h12v20H6z" /><path d="M9 7h6M9 11h6M9 15h4" /></>, customers: <><circle cx="12" cy="8" r="3" /><path d="M5 21c.7-4 3-6 7-6s6.3 2 7 6" /></>, average: <><path d="M4 19V5M4 19h16" /><path d="m7 15 3-4 3 2 4-6" /></>, attention: <><path d="M12 3 2.7 20h18.6L12 3Z" /><path d="M12 9v4M12 17h.01" /></>, inventory: <><path d="m3 7 9-4 9 4-9 4-9-4Z" /><path d="m3 12 9 4 9-4M3 17l9 4 9-4" /></>, review: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z" />, chart: <><path d="M4 19V5M4 19h16" /><path d="M7 15v-3M12 15V8M17 15V5" /></>, enquiry: <><path d="M4 5h16v11H8l-4 3V5Z" /><path d="M8 9h8M8 12h5" /></>, payment: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h3" /></>,
+  };
+  return <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24" aria-hidden>{paths[name] || paths.chart}</svg>;
 }
 
-function DashboardCard({ title, value, icon }) {
-  return (
-    <div className="rounded-lg border border-stone-800 bg-[#0c0816] p-6 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-stone-400">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-white">{value}</p>
-        </div>
-        <span className="text-4xl">{icon}</span>
-      </div>
-    </div>
-  );
+function Panel({ title, action, children, className = "" }) {
+  return <section className={`rounded-2xl border border-[#b48a3c]/20 bg-[#120d1b] p-5 shadow-[0_18px_45px_rgba(0,0,0,.18)] sm:p-6 ${className}`}><div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="font-serif text-2xl text-white">{title}</h2></div>{action}</div>{children}</section>;
+}
+
+function SalesChart({ points, drilldown, granularity }) {
+  const chart = useMemo(() => {
+    const width = 640; const height = 220; const padding = 24; const max = Math.max(...points.map((point) => Number(point.revenue)), 0);
+    return points.map((point, index) => ({ ...point, x: points.length === 1 ? width / 2 : padding + (index * (width - padding * 2)) / (points.length - 1), y: max ? height - padding - (Number(point.revenue) / max) * (height - padding * 2) : height - padding }));
+  }, [points]);
+  if (!points.some((point) => Number(point.revenue) > 0)) return <Empty message="No paid orders in this period." />;
+  const line = chart.map((point) => `${point.x},${point.y}`).join(" ");
+  const area = `24,196 ${line} 616,196`;
+  return <div><div className="mb-4 flex items-baseline justify-between"><p className="text-sm text-stone-400">Authoritative paid revenue by order creation date</p><p className="text-xs uppercase tracking-[0.16em] text-[#d4af37]">Revenue</p></div><div className="overflow-x-auto"><svg role="img" aria-label="Paid revenue trend" className="h-56 min-w-[480px] w-full" viewBox="0 0 640 220"><title>Paid revenue trend</title><defs><linearGradient id="sales-area" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#d4af37" stopOpacity=".34" /><stop offset="1" stopColor="#d4af37" stopOpacity="0" /></linearGradient></defs><path d="M24 196H616" stroke="rgba(255,255,255,.13)" /><path d={`M${area}Z`} fill="url(#sales-area)" /><polyline points={line} fill="none" stroke="#e5c66e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />{chart.map((point) => <a key={point.date} href={query("/admin/payments", { ...drilldown, status: "PAID" })} aria-label={`${trendDate(point.date, granularity)}: ${money(point.revenue)}, ${whole(point.paidOrders)} paid orders`}><circle cx={point.x} cy={point.y} r="5" fill="#120d1b" stroke="#f0d984" strokeWidth="3"><title>{`${trendDate(point.date, granularity)} — ${money(point.revenue)} from ${whole(point.paidOrders)} paid orders`}</title></circle></a>)}</svg></div><div className="mt-2 flex justify-between text-xs text-stone-500"><span>{trendDate(points[0].date, granularity)}</span><span>{trendDate(points.at(-1).date, granularity)}</span></div></div>;
+}
+
+function Empty({ message }) { return <p className="rounded-xl border border-dashed border-stone-700 px-4 py-8 text-center text-sm text-stone-400">{message}</p>; }
+
+function KpiCard({ label, value, icon, href, description }) { return <Link href={href} className="group rounded-2xl border border-[#b48a3c]/20 bg-[#120d1b] p-5 shadow-[0_18px_45px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:border-[#d4af37]/55 hover:shadow-[0_22px_50px_rgba(0,0,0,.3)]"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">{label}</p><p className="mt-3 font-serif text-3xl text-white">{value}</p>{description ? <p className="mt-2 text-xs text-stone-500">{description}</p> : null}</div><span className="rounded-xl border border-[#d4af37]/25 bg-[#d4af37]/10 p-3 text-[#edca65]"><Icon name={icon} /></span></div></Link>; }
+
+export default function AdminDashboardPage() {
+  const initial = presets().last30;
+  const [range, setRange] = useState(initial);
+  const [draft, setDraft] = useState(initial);
+  const [selected, setSelected] = useState("last30");
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [rangeError, setRangeError] = useState("");
+
+  useEffect(() => { let active = true; api.adminDashboard.overview(range).then((response) => { if (active) setData(response.data); }).catch((cause) => { if (active) setError(cause.message || "Unable to load the business overview."); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [range]);
+
+  const choosePreset = (key) => { const value = presets()[key]; setLoading(true); setError(""); setSelected(key); setDraft(value); setRange(value); setRangeError(""); };
+  const applyCustom = () => { if (!draft.from || !draft.to || draft.from > draft.to) { setRangeError("Choose a valid date range."); return; } setLoading(true); setError(""); setSelected("custom"); setRange({ from: draft.from, to: draft.to }); setRangeError(""); };
+  const clearCustom = () => choosePreset("last30");
+  const drilldown = { from: range.from, to: range.to };
+  const statusTotal = (items) => items.reduce((sum, item) => sum + Number(item.count || 0), 0);
+
+  return <AdminLayout><div className="mx-auto max-w-[1500px] space-y-6"><header className="flex flex-col gap-5 border-b border-[#b48a3c]/20 pb-6 xl:flex-row xl:items-end xl:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d4af37]">Sagunthala operations</p><h1 className="mt-2 font-serif text-4xl text-white sm:text-5xl">Business overview</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-stone-400">Paid sales, order health, customer activity, and operational work—grounded in current store data.</p></div><div className="flex flex-wrap gap-2">{Object.entries(presets()).map(([key, value]) => <button key={key} type="button" onClick={() => choosePreset(key)} className={`min-h-10 rounded-full border px-4 text-xs font-semibold transition ${selected === key ? "border-[#d4af37] bg-[#d4af37] text-[#17101c]" : "border-stone-700 text-stone-300 hover:border-[#b48a3c] hover:text-[#edca65]"}`}>{value.label}</button>)}<button type="button" onClick={() => setSelected("custom")} className={`min-h-10 rounded-full border px-4 text-xs font-semibold transition ${selected === "custom" ? "border-[#d4af37] bg-[#d4af37] text-[#17101c]" : "border-stone-700 text-stone-300 hover:border-[#b48a3c] hover:text-[#edca65]"}`}>Custom</button></div></header>
+    {selected === "custom" ? <div className="rounded-2xl border border-[#b48a3c]/20 bg-[#120d1b] p-4"><DateRangeFilter from={draft.from} to={draft.to} onChange={(field, value) => setDraft((current) => ({ ...current, [field]: value }))} onApply={applyCustom} onClear={clearCustom} error={rangeError} /></div> : null}
+    <p className="text-xs text-stone-500">Showing {range.from} to {range.to} · inclusive dates in {ADMIN_TIME_ZONE}</p>
+    {error ? <p role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">{error}</p> : null}
+    {loading ? <DashboardSkeleton /> : null}
+    {!loading && data ? <DashboardContent data={data} drilldown={drilldown} statusTotal={statusTotal} /> : null}
+  </div></AdminLayout>;
+}
+
+function DashboardSkeleton() { return <div className="space-y-6" aria-label="Loading dashboard"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-36 animate-pulse rounded-2xl bg-[#21192f]" />)}</div><div className="grid gap-6 xl:grid-cols-[1.55fr_.9fr]"><div className="h-80 animate-pulse rounded-2xl bg-[#21192f]" /><div className="h-80 animate-pulse rounded-2xl bg-[#21192f]" /></div></div>; }
+
+function DashboardContent({ data, drilldown, statusTotal }) {
+  const orderTotal = statusTotal(data.orderStatus); const paymentTotal = statusTotal(data.paymentStatus); const enquiryTotal = statusTotal(data.enquirySummary);
+  return <div className="space-y-6"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><KpiCard label="Revenue" value={money(data.kpis.revenue)} icon="revenue" href={query("/admin/payments", { ...drilldown, status: "PAID" })} description={`${whole(data.kpis.paidOrders)} paid orders`} /><KpiCard label="Orders" value={whole(data.kpis.orders)} icon="orders" href={query("/admin/orders", drilldown)} description="All valid orders in range" /><KpiCard label="New customers" value={whole(data.kpis.newCustomers)} icon="customers" href={query("/admin/clients", drilldown)} description={`${whole(data.customerSummary.totalCustomers)} total customers`} /><KpiCard label="Average order value" value={money(data.kpis.averageOrderValue)} icon="average" href={query("/admin/payments", { ...drilldown, status: "PAID" })} description="Paid revenue ÷ paid orders" /></div>
+    <div className="grid gap-6 xl:grid-cols-[1.55fr_.9fr]"><Panel title="Sales overview" action={<Link href={query("/admin/payments", { ...drilldown, status: "PAID" })} className="text-xs font-semibold uppercase tracking-[.14em] text-[#edca65] hover:text-white">View payments →</Link>}><SalesChart points={data.salesTrend} drilldown={drilldown} granularity={data.salesTrendGranularity} /></Panel><Panel title="Order pipeline" action={<Link href={query("/admin/orders", drilldown)} className="text-xs font-semibold uppercase tracking-[.14em] text-[#edca65] hover:text-white">View orders →</Link>}>{orderTotal ? <div className="space-y-4">{data.orderStatus.map((item) => <Link key={item.status} href={query("/admin/orders", { ...drilldown, status: item.status })} className="block"><div className="mb-2 flex items-center justify-between text-sm"><span className="text-stone-300">{item.status}</span><span className="font-semibold text-white">{whole(item.count)}</span></div><div className="h-2 overflow-hidden rounded-full bg-stone-800"><span className="block h-full rounded-full bg-[#d4af37]" style={{ width: `${Math.max(4, (item.count / orderTotal) * 100)}%` }} /></div></Link>)}</div> : <Empty message="No active order pipeline in this period." />}</Panel></div>
+    <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]"><Panel title="Top products" action={<Link href="/admin/products" className="text-xs font-semibold uppercase tracking-[.14em] text-[#edca65] hover:text-white">Manage products →</Link>}>{data.topProducts.length ? <div className="divide-y divide-stone-800">{data.topProducts.map((product) => <Link key={product.productId} href={`/admin/products/${product.productId}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 hover:text-[#edca65]"><span className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#21192f] text-[#d4af37]">{product.imageUrl ? <Image src={product.imageUrl} alt="" fill sizes="44px" className="object-cover" /> : <Icon name="inventory" />}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-white">{product.productName}</span><span className="mt-1 block text-xs text-stone-500">{whole(product.unitsSold)} units sold</span></span><span className="text-sm font-semibold text-[#edca65]">{money(product.revenue)}</span></Link>)}</div> : <Empty message="No paid product sales in this period." />}</Panel><Panel title="Payment health" action={<Link href={query("/admin/payments", drilldown)} className="text-xs font-semibold uppercase tracking-[.14em] text-[#edca65] hover:text-white">View payments →</Link>}>{paymentTotal ? <div className="grid gap-3 sm:grid-cols-2">{data.paymentStatus.map((item) => <Link key={item.status} href={query("/admin/payments", { ...drilldown, status: item.status })} className="rounded-xl border border-stone-800 p-4 transition hover:border-[#b48a3c]"><span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold tracking-wide ${statusClass(item.status)}`}>{item.status.replaceAll("_", " ")}</span><strong className="mt-3 block font-serif text-3xl text-white">{whole(item.count)}</strong>{item.status === "PAID" ? <span className="mt-1 block text-xs text-stone-400">{money(item.paidAmount)}</span> : null}</Link>)}</div> : <Empty message="No payment records in this period." />}</Panel></div>
+    <div className="grid gap-6 xl:grid-cols-2"><Panel title="Inventory health" action={<Link href="/admin/inventory" className="text-xs font-semibold uppercase tracking-[.14em] text-[#edca65] hover:text-white">View inventory →</Link>}><div className="grid grid-cols-3 gap-3"><div className="rounded-xl bg-emerald-400/10 p-3"><p className="text-xs text-emerald-200">Healthy</p><p className="mt-2 font-serif text-2xl text-white">{whole(data.inventoryHealth.healthy)}</p></div><div className="rounded-xl bg-amber-400/10 p-3"><p className="text-xs text-amber-100">Low stock</p><p className="mt-2 font-serif text-2xl text-white">{whole(data.inventoryHealth.lowStock)}</p></div><div className="rounded-xl bg-rose-400/10 p-3"><p className="text-xs text-rose-200">Out of stock</p><p className="mt-2 font-serif text-2xl text-white">{whole(data.inventoryHealth.outOfStock)}</p></div></div>{data.inventoryHealth.needsRestocking.length ? <div className="mt-5 space-y-2">{data.inventoryHealth.needsRestocking.slice(0, 4).map((product) => <Link key={product.id} href="/admin/inventory" className="flex items-center justify-between rounded-lg px-2 py-2 text-sm transition hover:bg-[#21192f]"><span className="truncate text-stone-200">{product.name}</span><span className="ml-4 shrink-0 text-[#edca65]">{whole(product.stock_qty)} left</span></Link>)}</div> : <p className="mt-5 text-sm text-stone-400">All current products are above the configured low-stock threshold.</p>}</Panel><Panel title="Needs attention" action={<span className="rounded-full border border-[#d4af37]/25 bg-[#d4af37]/10 px-2 py-1 text-xs text-[#edca65]">{whole(data.alerts.reduce((sum, alert) => sum + alert.count, 0))}</span>}>{data.alerts.length ? <div className="space-y-3">{data.alerts.map((alert) => <Link key={alert.type} href={alert.href} className="flex items-center gap-3 rounded-xl border border-stone-800 p-4 transition hover:border-[#b48a3c]"><span className="rounded-lg bg-rose-400/10 p-2 text-rose-200"><Icon name={alert.type === "INVENTORY" ? "inventory" : alert.type === "ENQUIRIES" ? "enquiry" : "attention"} /></span><span className="min-w-0 flex-1"><strong className="block text-sm text-white">{whole(alert.count)} {alert.label}</strong><span className="mt-1 block text-xs text-stone-500">Open operational work</span></span><span className="text-[#d4af37]" aria-hidden>→</span></Link>)}</div> : <Empty message="No current operational alerts." />}</Panel></div>
+    <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]"><Panel title="Customers" action={<Link href={query("/admin/clients", drilldown)} className="text-xs font-semibold uppercase tracking-[.14em] text-[#edca65] hover:text-white">Customer directory →</Link>}>{data.customerSummary.recentCustomers.length ? <div className="divide-y divide-stone-800">{data.customerSummary.recentCustomers.map((customer) => <Link key={customer.id} href={`/admin/customers/${customer.id}`} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"><span className="min-w-0"><strong className="block truncate text-sm text-white">{customer.full_name || customer.email}</strong><span className="block truncate text-xs text-stone-500">{customer.email}</span></span><span className="shrink-0 text-right text-xs text-stone-400">{whole(customer.order_count)} orders<br /><span className="text-[#edca65]">{money(customer.paid_value)}</span></span></Link>)}</div> : <Empty message="No customers were created in this period." />}</Panel><Panel title="Enquiries & reviews" action={<div className="flex gap-4"><Link href="/admin/enquiries" className="text-xs font-semibold uppercase tracking-[.14em] text-[#edca65] hover:text-white">Enquiries</Link><Link href="/admin/reviews" className="text-xs font-semibold uppercase tracking-[.14em] text-[#edca65] hover:text-white">Reviews</Link></div>}><div className="grid gap-4 sm:grid-cols-2"><div>{enquiryTotal ? data.enquirySummary.map((item) => <Link key={item.status} href={`/admin/enquiries?status=${item.status}`} className="mb-2 flex items-center justify-between rounded-lg px-2 py-2 text-sm hover:bg-[#21192f]"><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${statusClass(item.status)}`}>{item.status}</span><strong className="text-white">{whole(item.count)}</strong></Link>) : <p className="text-sm text-stone-400">No enquiries in this period.</p>}</div><div className="rounded-xl border border-stone-800 p-4"><p className="text-xs uppercase tracking-[.16em] text-stone-400">Approved rating</p><p className="mt-2 font-serif text-3xl text-white">{data.reviewSummary.averageRating ? data.reviewSummary.averageRating.toFixed(1) : "—"}</p><p className="mt-2 text-xs text-stone-400">{whole(data.reviewSummary.reviewCount)} reviews · {whole(data.reviewSummary.pendingCount)} pending</p></div></div></Panel></div>
+    <div className="grid gap-6 xl:grid-cols-[1fr_.9fr]"><Panel title="Revenue breakdown"><dl className="grid gap-3 sm:grid-cols-4">{[["Product subtotal", data.revenueBreakdown.subtotal], ["GST", data.revenueBreakdown.gst], ["Shipping", data.revenueBreakdown.shipping], ["Total paid", data.revenueBreakdown.totalPaid]].map(([label, value]) => <div key={label} className="rounded-xl border border-stone-800 p-4"><dt className="text-xs text-stone-500">{label}</dt><dd className="mt-2 font-serif text-xl text-white">{money(value)}</dd></div>)}</dl><p className="mt-4 text-xs leading-5 text-stone-500">Only orders with authoritative payment status <strong className="font-semibold text-stone-400">PAID</strong> contribute. Product subtotal, tax, and shipping remain distinct.</p></Panel><Panel title="Website analytics"><div className="flex gap-3"><span className="rounded-xl border border-stone-700 bg-[#21192f] p-3 text-stone-300"><Icon name="chart" /></span><p className="text-sm leading-6 text-stone-400">{data.trafficAnalytics.reason}</p></div><p className="mt-4 text-xs text-stone-500">Visitor, product-view, add-to-cart, checkout, and conversion reporting require a separate event-tracking phase.</p></Panel></div>
+  </div>;
 }

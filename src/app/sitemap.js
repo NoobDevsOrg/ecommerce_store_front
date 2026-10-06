@@ -1,5 +1,6 @@
 import { getPublicProducts } from "../lib/publicApi";
 import { getAbsoluteSiteUrl } from "../lib/siteUrl";
+import { buildProductSitemapEntries } from "../lib/seoFoundation.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -28,21 +29,11 @@ export default async function sitemap() {
 
     return [
       ...sitemapEntries,
-      ...allProducts.flatMap((product) => {
-        const url = product.slug ? getAbsoluteSiteUrl(`/products/${product.slug}`) : null;
-        if (!url) return [];
-
-        const updatedAt = product.updated_at ? new Date(product.updated_at) : null;
-        return [{
-          url,
-          ...(updatedAt && !Number.isNaN(updatedAt.getTime()) ? { lastModified: updatedAt } : {}),
-          changeFrequency: "weekly",
-          priority: 0.8,
-        }];
-      }),
+      ...buildProductSitemapEntries(allProducts, getAbsoluteSiteUrl("/")),
     ];
   } catch {
-    // Keep the public landing-page sitemap available if the catalog API is temporarily unavailable.
+    // Never invent product URLs when the authoritative catalogue cannot be read.
+    // The two public landing pages remain truthful and crawlable.
     return sitemapEntries;
   }
 }

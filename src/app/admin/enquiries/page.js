@@ -91,6 +91,12 @@ function DetailField({ label, value, copyable, suffix }) {
 
 // ─── EnquiryDetailModal ───────────────────────────────────────────────────────
 
+function EnquiryNotificationSection({ enquiryId }) {
+  const [items, setItems] = useState([]);
+  useEffect(() => { let active = true; api.notifications.admin.byEntity("ENQUIRY", enquiryId).then((response) => { if (active) setItems(response.data || []); }).catch(() => { if (active) setItems([]); }); return () => { active = false; }; }, [enquiryId]);
+  return <div><p className="text-[10px] uppercase tracking-widest text-stone-500 mb-1.5">Notifications</p><div className="rounded-lg bg-[#1b1728] border border-stone-800 px-4 py-3">{items.length ? <div className="space-y-3">{items.map((item) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 text-sm"><div><p className="text-stone-200">{item.title}</p><p className="mt-0.5 text-xs text-stone-500">In-app: {item.readAt ? "Read" : "Delivered"} · Email: {item.deliveries?.find((delivery) => delivery.channel === "EMAIL")?.status || "Not configured"}</p></div><a href={`/admin/notifications/${encodeURIComponent(item.id)}`} className="text-xs text-[#b48a3c] hover:text-[#d4af37]">View details →</a></div>)}</div> : <span className="text-sm text-stone-500">No notifications recorded for this enquiry.</span>}</div></div>;
+}
+
 function EnquiryDetailModal({ enquiry, onClose }) {
   console.log("enquiry &&&&&$**$(", enquiry.status);
   const overlayRef = useRef(null);
@@ -238,6 +244,8 @@ function EnquiryDetailModal({ enquiry, onClose }) {
                 {enquiry.message || <span className="text-stone-600 italic">No message provided</span>}
               </div>
             </div>
+
+            <EnquiryNotificationSection enquiryId={enquiry.id} />
           </div>
 
           {/* Footer */}

@@ -1,9 +1,13 @@
 // hooks/useEnquiries.js
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL
+    || (process.env.NODE_ENV === "development" ? "http://localhost:5000" : "");
 
 async function apiFetch(path, options = {}) {
+    if (!API_BASE) {
+        throw new Error("The service is unavailable. Please try again later.");
+    }
     const res = await fetch(`${API_BASE}${path}`, {
         headers: { "Content-Type": "application/json" },
         ...options,
@@ -14,7 +18,6 @@ async function apiFetch(path, options = {}) {
 }
 
 export function useEnquiries() {
-    console.log("API BASE ------------------------------", API_BASE);
     const [enquiries, setEnquiries] = useState([]);
     const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
     const [isLoading, setIsLoading] = useState(true);
@@ -46,8 +49,6 @@ export function useEnquiries() {
                 ...(status !== "all" && { status }),
             });
             const json = await apiFetch(`/products/enquiries?${params}`);
-            console.log("Enquiry API Response:", json);
-
             setEnquiries(json.data.data);
             setPagination(json.data.pagination);
         } catch (err) {

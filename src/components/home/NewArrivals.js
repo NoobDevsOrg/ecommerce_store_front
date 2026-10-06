@@ -9,6 +9,7 @@ import { getPublicProducts } from "../../lib/publicApi";
 import ProductCard from "../product/ProductCard";
 import { useGsapReveal } from "../../app/hooks/useGsapAnimations";
 import { api } from "../../lib/api";
+import { productHref } from "../../lib/productUrl";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -92,7 +93,7 @@ function ArrivalCard({ product, index }) {
               }`}
           >
             <Link
-              href={`/products/${product.slug}`}
+              href={productHref(product)}
               className="flex-1 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[8px] uppercase tracking-[0.4em] font-bold text-center hover:bg-[#b48a3c] hover:border-[#b48a3c] hover:text-[#0f0a1a] transition-all duration-300 rounded-sm"
             >
               View

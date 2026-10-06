@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
+import { productHref } from "../../lib/productUrl";
 
 const SLIDE_DURATION = 6000;
 
@@ -170,7 +171,7 @@ export default function HeroSlider({ slides = [] }) {
                 </div>
                 <h1 data-animate className="text-5xl md:text-7xl lg:text-8xl font-serif text-white leading-[1.0] tracking-[-0.02em] opacity-0">{slide.product.name}</h1>
                 {slide.product.price !== null ? <p data-animate className="mt-6 text-stone-300/80 text-sm md:text-base font-light opacity-0">{new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(slide.product.price)}</p> : null}
-                {slide.product.slug ? <div data-animate className="mt-10 opacity-0"><Link href={`/products/${slide.product.slug}`} className="group relative inline-flex items-center gap-3 rounded-sm bg-[#b48a3c] px-8 py-4 text-[10px] font-black uppercase tracking-[0.35em] text-[#0f0a1a] transition-all duration-400 hover:bg-[#d4af37]"><span>View Product</span><span className="group-hover:translate-x-1 transition-transform duration-300">→</span></Link></div> : null}
+                {slide.product.slug ? <div data-animate className="mt-10 opacity-0"><Link href={productHref(slide.product)} className="group relative inline-flex items-center gap-3 rounded-sm bg-[#b48a3c] px-8 py-4 text-[10px] font-black uppercase tracking-[0.35em] text-[#0f0a1a] transition-all duration-400 hover:bg-[#d4af37]"><span>View Product</span><span className="group-hover:translate-x-1 transition-transform duration-300">→</span></Link></div> : null}
               </> : null}
             </div>
           </div>

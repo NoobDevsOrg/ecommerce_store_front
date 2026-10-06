@@ -1,10 +1,10 @@
 import "./globals.css";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
-import AutoPlayAudio from "../components/ui/AutoPlayAudio";
-import { getSiteUrl } from "../lib/siteUrl";
+import { getAbsoluteSiteUrl, getSiteUrl } from "../lib/siteUrl";
 
 const siteUrl = getSiteUrl();
+const homeUrl = getAbsoluteSiteUrl("/");
 
 export const metadata = {
   ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
@@ -35,7 +35,7 @@ export const metadata = {
   openGraph: {
     title: "Sagunthala Jewellers | Premium Gold & Temple Jewellery",
     description: "Premium gold and temple jewellery collections crafted with divine heritage.",
-    url: "/",
+    url: homeUrl,
     siteName: "Sagunthala Jewellers",
     locale: "en_IN",
     type: "website",
@@ -64,7 +64,6 @@ export default function RootLayout({ children }) {
         <div className="fixed top-0 left-1/2 -translate-x-1/2 h-[500px] w-full max-w-[1000px] rounded-full bg-amber-300/20 blur-[120px] pointer-events-none z-0 dark:bg-[#b48a3c]/5"></div>
 
         <Header />
-        <AutoPlayAudio />
         <main className="relative z-10 min-h-screen admin-content-shift transition-[margin] duration-200">
           {children}
         </main>

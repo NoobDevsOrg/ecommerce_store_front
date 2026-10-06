@@ -7,9 +7,11 @@ export default function robots() {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin/", "/cart", "/login", "/search", "/review/"],
+      // Public crawlers must be able to receive each page's explicit noindex
+      // directive. Application auth, not robots.txt, protects private routes.
+      disallow: ["/admin/"],
     },
-    ...(siteUrl ? { host: siteUrl } : {}),
-    ...(siteUrl ? { sitemap: getAbsoluteSiteUrl("/sitemap.xml") } : {}),
+    host: siteUrl,
+    sitemap: getAbsoluteSiteUrl("/sitemap.xml"),
   };
 }

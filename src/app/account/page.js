@@ -1,0 +1,28 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useCustomerAuth } from "../../components/hooks/useCustomerAuth";
+import AddressManager from "../../components/account/AddressManager";
+import OrderPurchaseActions from "../../components/orders/OrderPurchaseActions";
+import { api } from "../../lib/api";
+
+const money = (value) => `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+const date = (value) => (value ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(value)) : "—");
+
+export default function AccountPage() {
+  const router = useRouter();
+  const { customer, isLoading, updateProfile, logout } = useCustomerAuth();
+  const [fullName, setFullName] = useState(""); const [message, setMessage] = useState(""); const [isSaving, setIsSaving] = useState(false);
+  const [recentOrders, setRecentOrders] = useState([]); const [ordersError, setOrdersError] = useState("");
+
+  useEffect(() => { if (!isLoading && !customer) router.replace("/login"); if (customer?.fullName) setFullName(customer.fullName); }, [customer, isLoading, router]);
+  useEffect(() => { if (!customer) return undefined; let active = true; async function load() { try { const response = await api.orders.mine({ page: 1, limit: 3 }); if (active) setRecentOrders(response?.data?.orders || []); } catch (error) { if (active) setOrdersError(error?.message || "Unable to load recent orders."); } } void load(); return () => { active = false; }; }, [customer]);
+
+  const save = async (event) => { event.preventDefault(); if (fullName.trim().length < 2 || isSaving) { setMessage("Please enter your full name."); return; } setIsSaving(true); setMessage(""); try { await updateProfile({ fullName }); setMessage("Your profile has been updated."); } catch (error) { setMessage(error?.message || "We could not update your profile."); } finally { setIsSaving(false); } };
+  const signOut = async () => { await logout(); router.replace("/"); router.refresh(); };
+  if (isLoading || !customer) return <main className="min-h-screen bg-[#0f0a1a]" />;
+
+  return <main className="min-h-screen bg-[#0f0a1a] px-4 py-20 text-stone-200 sm:px-6"><section className="mx-auto max-w-4xl space-y-6"><div className="rounded-2xl border border-stone-800 bg-[#161022] p-6 sm:p-8"><p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d4af37]">Your account</p><h1 className="mt-3 font-serif text-3xl text-white">Welcome, {customer.fullName}</h1><p className="mt-2 text-sm text-stone-400">{customer.email}</p></div><section className="rounded-2xl border border-stone-800 bg-[#161022] p-6 sm:p-8"><div className="flex items-center justify-between gap-4"><div><h2 className="font-serif text-2xl text-white">Recent orders</h2><p className="mt-1 text-sm text-stone-500">Your latest pieces and their current availability.</p></div><Link href="/account/orders" className="shrink-0 text-sm text-[#d4af37] hover:text-[#edca65]">View all orders</Link></div>{ordersError ? <p className="mt-5 text-sm text-rose-300">{ordersError}</p> : null}{!ordersError && recentOrders.length === 0 ? <p className="mt-5 text-sm text-stone-400">No orders yet. <Link href="/products" className="text-[#d4af37]">Explore the collection</Link>.</p> : null}<div className="mt-5 space-y-3">{recentOrders.map((order) => { const preview = order.itemPreviews?.[0]; return <article key={order.orderNumber} className="flex flex-col gap-4 rounded-xl border border-stone-800 bg-[#120f1d] p-4 sm:flex-row sm:items-center"><div className="h-16 w-16 shrink-0 overflow-hidden rounded bg-[#0f0a1a]">{preview?.imageUrl ? <img src={preview.imageUrl} alt="" className="h-full w-full object-cover" /> : null}</div><div className="min-w-0 flex-1"><Link href={`/account/orders/${encodeURIComponent(order.orderNumber)}`} className="font-semibold text-white hover:text-[#d4af37]">{order.orderNumber}</Link><p className="mt-1 text-sm text-stone-400">{date(order.createdAt)} · {preview?.productName || "Order items"}{order.itemCount > 1 ? ` +${order.itemCount - 1} more` : ""}</p><p className="mt-1 text-sm text-stone-300">{money(order.totalAmount)} · {order.paymentStatus} · {order.status}</p></div><div className="flex flex-wrap gap-2"><Link href={`/account/orders/${encodeURIComponent(order.orderNumber)}`} className="rounded border border-stone-700 px-3 py-2 text-xs text-stone-200">View Order</Link>{preview ? <OrderPurchaseActions item={preview} compact /> : null}</div></article>; })}</div></section><section className="rounded-2xl border border-stone-800 bg-[#161022] p-6 sm:p-8"><h2 className="font-serif text-2xl text-white">Profile</h2><form onSubmit={save} className="mt-5 space-y-4"><label htmlFor="account-full-name" className="block text-sm font-medium text-stone-200">Full name</label><input id="account-full-name" value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" className="w-full rounded-lg border border-stone-700 bg-[#120f1d] px-4 py-3 text-sm text-white outline-none focus:border-[#d4af37]" />{message ? <p className="text-sm text-stone-300" role="status">{message}</p> : null}<button disabled={isSaving} className="rounded-lg bg-[#d4af37] px-5 py-3 text-sm font-bold text-[#0f0a1a] disabled:opacity-60">{isSaving ? "Saving…" : "Save profile"}</button></form><AddressManager /><div className="mt-8 flex items-center justify-between border-t border-stone-800 pt-6"><Link href="/products" className="text-sm text-[#d4af37] hover:text-[#edca65]">Continue shopping</Link><button onClick={signOut} className="text-sm text-stone-400 hover:text-white">Sign out</button></div></section></section></main>;
+}

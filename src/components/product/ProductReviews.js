@@ -77,8 +77,6 @@ export default function ProductReviews({ productId }) {
     if (!productId) return;
     let cancelled = false;
 
-    setState({ loading: true, error: "", data: null });
-
     api.products.reviews
       .listByProduct(productId)
       .then((res) => {
@@ -102,7 +100,7 @@ export default function ProductReviews({ productId }) {
   );
 
   return (
-    <section className="border-t border-stone-900/50 px-[clamp(1rem,2.5vw,2rem)] py-[clamp(2rem,5vw,5rem)]">
+    <section id="reviews" className="scroll-mt-24 border-t border-stone-900/50 px-[clamp(1rem,2.5vw,2rem)] py-[clamp(2rem,5vw,5rem)]">
       <div className="mx-auto w-full max-w-[min(1700px,96vw)]">
         <h2 className="text-2xl md:text-3xl font-serif text-white mb-8 md:mb-10">
           Customer <span className="text-stone-500 font-light italic">Reviews</span>

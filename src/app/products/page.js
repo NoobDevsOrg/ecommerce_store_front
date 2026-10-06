@@ -6,6 +6,8 @@ import Select from "react-select";
 import { api } from "../../lib/api";
 import { addToCart } from "../../store/cartStore";
 import ReviewsModal from "../../components/product/ReviewModal";
+import CategoryHierarchy, { selectedCategoryIds } from "../../components/product/CategoryHierarchy";
+import { productHref } from "../../lib/productUrl";
 
 // ─── Enquiry Modal ────────────────────────────────────────────────────────────
 
@@ -33,7 +35,7 @@ function FloatingInput({ id, label, type = "text", value, onChange, required, er
                     width: "100%",
                     padding: "22px 0 8px",
                     color: "#f5f0e8",
-                    fontSize: "14px",
+                    fontSize: "16px",
                     letterSpacing: "0.3px",
                     transition: "border-color 0.25s ease",
                     opacity: disabled ? 0.5 : 1,
@@ -84,7 +86,7 @@ function FloatingTextarea({ id, label, value, onChange, disabled }) {
                     width: "100%",
                     padding: "22px 0 8px",
                     color: "#f5f0e8",
-                    fontSize: "14px",
+                    fontSize: "16px",
                     resize: "none",
                     fontFamily: "inherit",
                     transition: "border-color 0.25s ease",
@@ -235,8 +237,6 @@ function EnquiryModal({ isOpen, onClose, productId, productName, products = [],
             };
             const res = await api.post("/products/enquiry", enqData);
 
-            console.log("FULL RESPONSE:", res);
-
             const responseData = res;
 
             if (!responseData) {
@@ -252,8 +252,6 @@ function EnquiryModal({ isOpen, onClose, productId, productName, products = [],
             onSuccess?.();
 
         } catch (err) {
-            console.error("ERROR:", err);
-
             if (err.response) {
                 const { status, data } = err.response;
 
@@ -271,10 +269,9 @@ function EnquiryModal({ isOpen, onClose, productId, productName, products = [],
                     return;
                 }
 
-                setGlobalError(data?.message || "Submission failed");
+                setGlobalError(data?.message || "We could not send your enquiry. Please try again.");
             } else {
-                console.error("Network/JS Error:", err.message);
-                setGlobalError(err.message || "Something went wrong");
+                setGlobalError("We could not send your enquiry. Please check your connection and try again.");
             }
 
             setStatus("error");
@@ -347,7 +344,7 @@ function EnquiryModal({ isOpen, onClose, productId, productName, products = [],
                         style={{
                             position: "absolute", top: 18, right: 22,
                             background: "none", border: "none", cursor: "pointer",
-                            color: "#5a5048", fontSize: 18, lineHeight: 1, padding: 4, zIndex: 1,
+                            color: "#5a5048", fontSize: 18, lineHeight: 1, width: 44, height: 44, padding: 0, zIndex: 1,
                             transition: "color .2s, transform .2s",
                         }}
                     >✕</button>
@@ -382,7 +379,7 @@ function EnquiryModal({ isOpen, onClose, productId, productName, products = [],
                             <p style={{ margin: "0 0 8px", color: "#b48a3c", fontSize: "10px", letterSpacing: "4px", textTransform: "uppercase" }}>Received</p>
                             <h3 style={{ margin: "0 0 12px", color: "#f5f0e8", fontSize: "18px", fontWeight: 400, fontFamily: "Georgia, serif" }}>Thank You</h3>
                             <p style={{ margin: "0 0 28px", color: "#7a7068", fontSize: "13px", lineHeight: 1.8 }}>
-                                We've received your enquiry for
+                                We&apos;ve received your enquiry for
                                 <strong>
                                     {" "}
                                     {form.products.length} product
@@ -630,7 +627,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     if (totalPages <= 1) return null;
 
     const baseBtn =
-        "min-w-[38px] h-[38px] px-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center";
+        "min-w-11 h-11 px-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center";
 
     return (
         <nav className="flex items-center justify-center gap-2 pt-2" aria-label="Pagination">
@@ -647,7 +644,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 
             {pages.map((page, idx) =>
                 page === "…" ? (
-                    <span key={`dots-${idx}`} className="min-w-[38px] h-[38px] flex items-center justify-center text-stone-500">
+                    <span key={`dots-${idx}`} className="min-w-11 h-11 flex items-center justify-center text-stone-500">
                         …
                     </span>
                 ) : (
@@ -723,135 +720,16 @@ const ProductCard = ({ product, index, onEnquiry }) => {
             product.inventory ||
             0
         ) > 0;
+    const canBuy = Boolean(product.isPurchasable);
+    const canEnquire = Boolean(product.isEnquiryEnabled);
 
-    return (
-        <>
-            <Link
-                href={`/products/${product.slug}`}
-                className="block"
-            >
-                <article
-                    className="group overflow-hidden rounded-2xl border border-stone-800 bg-[#11101a] transition-all duration-300 hover:-translate-y-1 hover:border-[#b48a3c]/50 hover:shadow-2xl hover:shadow-[#b48a3c]/20 animate-fade-in cursor-pointer"
-                    style={{
-                        animationDelay: `${index * 50}ms`,
-                    }}
-                >
-                    {/* IMAGE */}
-                    <div className="relative aspect-square overflow-hidden">
-                        <img
-                            src={imageUrl}
-                            alt={product.name}
-                            loading="lazy"
-                            className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
-                            onError={(e) => {
-                                e.currentTarget.src =
-                                    "/images/placeholder.jpg";
-                            }}
-                        />
-
-                        {discount > 0 && (
-                            <div className="absolute top-3 left-3 rounded-full bg-emerald-500 px-2 py-1 text-xs font-bold text-white">
-                                -{discount}%
-                            </div>
-                        )}
-
-                        {!inStock && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                                <span className="rounded-full bg-stone-800 px-3 py-1 text-sm font-semibold text-white">
-                                    Out of Stock
-                                </span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* CONTENT */}
-                    <div className="space-y-3 p-4">
-                        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-white transition-colors group-hover:text-[#b48a3c] sm:text-base">
-                            {product.name}
-                        </h3>
-
-                        <div className="flex items-center justify-between gap-2">
-
-                            <div className="flex flex-col">
-                                <span className="text-lg font-extrabold text-[#d4af37]">
-                                    ₹{price.toLocaleString("en-IN")}
-                                </span>
-
-                                {discount > 0 && (
-                                    <span className="text-sm text-stone-400 line-through">
-                                        ₹{oldPrice.toLocaleString("en-IN")}
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* RATING */}
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setIsReviewsOpen(true);
-                                }}
-                                className="flex flex-col items-end hover:opacity-80"
-                            >
-                                <RatingStars
-                                    value={Number(product.average_rating)}
-                                />
-
-                                <p className="text-xs text-stone-300">
-                                    {Number(
-                                        product.average_rating || 0
-                                    ).toFixed(1)}
-                                    {" "}
-                                    ({product.review_count || 0})
-                                </p>
-                            </button>
-                        </div>
-
-                        {/* BUTTONS */}
-                        <div className="flex gap-2 pt-2">
-
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-
-                                    onEnquiry(
-                                        product.id,
-                                        product.name
-                                    );
-                                }}
-                                className="whitespace-nowrap rounded-lg border border-[#b48a3c] px-3 py-2 text-xs font-medium text-[#b48a3c] transition-all duration-200 hover:bg-[#b48a3c] hover:text-[#0f0a1a]"
-                            >
-                                Get a Quote
-                            </button>
-
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-
-                                    addToCart(product);
-                                }}
-                                disabled={!inStock}
-                                className="whitespace-nowrap rounded-lg border border-stone-700 px-3 py-2 text-sm text-stone-300 transition-all duration-200 hover:border-[#b48a3c] hover:text-[#b48a3c] disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                                Add to Cart
-                            </button>
-
-                        </div>
-                    </div>
-                </article>
-            </Link>
-
-            {isReviewsOpen && (
-                <ReviewsModal
-                    product={product}
-                    onClose={() => setIsReviewsOpen(false)}
-                />
-            )}
-        </>
-    );
+    return <><article className="group relative overflow-hidden rounded-2xl border border-stone-800/90 bg-[#161022] shadow-[0_14px_34px_rgba(0,0,0,0.18)] transition duration-500 hover:-translate-y-1 hover:border-[#b48a3c]/55 hover:shadow-[0_24px_50px_rgba(0,0,0,0.42)] animate-fade-in" style={{ animationDelay: `${index * 45}ms` }}>
+        <div className="relative aspect-[4/5] overflow-hidden bg-[#120f1d]"><Link href={productHref(product)} className="block h-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#d4af37]"><img src={imageUrl} alt={product.name} loading="lazy" className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-105" onError={(e) => { e.currentTarget.src = "/images/placeholder.jpg"; }} /></Link><div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f0a1a]/65 via-transparent to-transparent opacity-70" />
+        {product.category_name || product.category ? <span className="absolute left-3 top-3 rounded-full border border-[#d4af37]/35 bg-black/45 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[#f0d984] backdrop-blur">{product.category_name || product.category}</span> : null}{discount > 0 ? <span className="absolute right-3 top-3 rounded-full bg-[#b48a3c] px-2.5 py-1 text-[10px] font-bold text-[#0f0a1a]">Save {discount}%</span> : null}
+        {!inStock && canBuy ? <span className="absolute bottom-3 left-3 rounded-full border border-stone-600 bg-black/60 px-3 py-1 text-xs font-medium text-stone-100 backdrop-blur">Out of stock</span> : null}
+        <div className="absolute inset-x-3 bottom-3 flex translate-y-0 gap-2 transition duration-300 sm:translate-y-16 sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0"><Link href={productHref(product)} className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-white/95 px-3 text-xs font-bold text-[#17111e] transition hover:bg-[#f6e2a1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">View piece</Link>{canBuy && inStock ? <button type="button" onClick={() => addToCart(product)} className="flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-[#b48a3c] px-3 text-[#0f0a1a] transition hover:bg-[#e4c46a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d4af37]" aria-label={`Add ${product.name} to cart`}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h2l2 12h10l2-8H7"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg></button> : null}</div></div>
+        <div className="p-4 sm:p-5"><Link href={productHref(product)} className="line-clamp-2 min-h-11 font-serif text-base leading-snug text-white transition hover:text-[#d4af37] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#d4af37]">{product.name}</Link><div className="mt-3 flex items-end justify-between gap-3"><div><p className="text-lg font-semibold text-[#d4af37]">{canBuy ? `₹${price.toLocaleString("en-IN")}` : "Price on request"}</p>{discount > 0 ? <p className="mt-0.5 text-xs text-stone-500 line-through">₹{oldPrice.toLocaleString("en-IN")}</p> : null}</div><button type="button" onClick={() => setIsReviewsOpen(true)} className="min-h-11 rounded-md px-2 text-right text-xs text-stone-400 transition hover:text-[#f0d984] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#d4af37]" aria-label={`See reviews for ${product.name}`}><RatingStars value={Number(product.average_rating)} /><span className="mt-1 block">{product.review_count ? `${Number(product.average_rating || 0).toFixed(1)} · ${product.review_count}` : "No reviews"}</span></button></div>{canEnquire ? <button type="button" onClick={() => onEnquiry(product.id, product.name)} className="mt-4 min-h-11 text-xs font-semibold text-stone-300 underline decoration-stone-600 underline-offset-4 transition hover:text-[#d4af37] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#d4af37]">Need help choosing?</button> : null}</div>
+    </article>{isReviewsOpen ? <ReviewsModal product={product} onClose={() => setIsReviewsOpen(false)} /> : null}</>;
 };
 
 export default function ProductsListingPage() {
@@ -879,7 +757,7 @@ export default function ProductsListingPage() {
 
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
-    const [categoryFilter, setCategoryFilter] = useState([]); // array of category IDs
+    const [selectedCategoryValue, setSelectedCategoryValue] = useState("");
     const [ratingFilter, setRatingFilter] = useState(0);
     const [inStockOnly, setInStockOnly] = useState(false);
     const [priceRange, setPriceRange] = useState([0, 1000000]);
@@ -924,6 +802,19 @@ export default function ProductsListingPage() {
         { value: 1, label: "1+ Star" },
     ];
 
+    // The category URL is the shareable source of truth. Listening for
+    // popstate keeps browser Back/Forward aligned with the selected node.
+    useEffect(() => {
+        const syncFromLocation = () => {
+            const params = new URLSearchParams(window.location.search);
+            setSelectedCategoryValue(params.get("category") || "");
+            setSearchQuery(params.get("search") || "");
+        };
+        syncFromLocation();
+        window.addEventListener("popstate", syncFromLocation);
+        return () => window.removeEventListener("popstate", syncFromLocation);
+    }, []);
+
     // Debounce search — reset to page 1 in the same tick so the fetch effect
     // below only runs once per debounce cycle, not once for the search change
     // and again for the page reset.
@@ -934,6 +825,16 @@ export default function ProductsListingPage() {
         }, 300);
         return () => clearTimeout(timer);
     }, [searchQuery]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const search = debouncedSearch.trim();
+        if (search) params.set("search", search);
+        else params.delete("search");
+        params.delete("page");
+        const query = params.toString();
+        window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+    }, [debouncedSearch]);
 
     // Same idea for the price slider: don't fire a request on every pixel of
     // drag, only once the user pauses.
@@ -948,6 +849,16 @@ export default function ProductsListingPage() {
     useEffect(() => {
         setPortalTarget(document.body);
     }, []);
+
+    const selectedCategory = useMemo(
+        () => categories.find((category) => category.id === selectedCategoryValue || category.slug === selectedCategoryValue) || null,
+        [categories, selectedCategoryValue]
+    );
+    const selectedCategoryId = selectedCategory?.id || "";
+    const categoryFilter = useMemo(
+        () => selectedCategory ? selectedCategoryIds(categories, selectedCategory.id) : [],
+        [categories, selectedCategory]
+    );
 
     // Sidebar facets — fetched once on mount. Independent of page/filters so
     // the category list and price slider bounds don't shift as the user
@@ -1037,10 +948,28 @@ setPagination(response.data?.pagination || null);
 
     const totalPages = pagination?.totalPages || 1;
 
+    const selectCategory = useCallback((category) => {
+        const params = new URLSearchParams(window.location.search);
+        if (category) params.set("category", category.slug || category.id);
+        else params.delete("category");
+        params.delete("page");
+        const query = params.toString();
+        window.history.pushState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+        setSelectedCategoryValue(category?.slug || category?.id || "");
+        setCurrentPage(1);
+        setShowFilters(false);
+    }, []);
+
     const clearFilters = useCallback(() => {
         setSearchQuery("");
         setDebouncedSearch("");
-        setCategoryFilter([]);
+        const params = new URLSearchParams(window.location.search);
+        params.delete("category");
+        params.delete("search");
+        params.delete("page");
+        const query = params.toString();
+        window.history.pushState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+        setSelectedCategoryValue("");
         setRatingFilter(0);
         setInStockOnly(false);
         setPriceRange(priceBounds);
@@ -1048,13 +977,6 @@ setPagination(response.data?.pagination || null);
         setSortOption("newest");
         setCurrentPage(1);
     }, [priceBounds]);
-
-    const toggleCategory = useCallback((categoryId) => {
-        setCategoryFilter((prev) =>
-            prev.includes(categoryId) ? prev.filter((c) => c !== categoryId) : [...prev, categoryId]
-        );
-        setCurrentPage(1);
-    }, []);
 
     const goToPage = useCallback(
         (page) => {
@@ -1068,6 +990,23 @@ setPagination(response.data?.pagination || null);
         },
         [currentPage, totalPages]
     );
+
+    useEffect(() => {
+        if (!showFilters) return undefined;
+        const originalOverflow = document.body.style.overflow;
+        const originalRootOverflow = document.documentElement.style.overflow;
+        const closeOnEscape = (event) => {
+            if (event.key === "Escape") setShowFilters(false);
+        };
+        document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
+        document.addEventListener("keydown", closeOnEscape);
+        return () => {
+            document.body.style.overflow = originalOverflow;
+            document.documentElement.style.overflow = originalRootOverflow;
+            document.removeEventListener("keydown", closeOnEscape);
+        };
+    }, [showFilters]);
 
     return (
         <main className="bg-[#0f0a1a] min-h-screen pb-10">
@@ -1102,22 +1041,26 @@ setPagination(response.data?.pagination || null);
                     </div>
 
                     {/* Controls */}
-                    <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => setShowFilters((prev) => !prev)}
-                                className="lg:hidden rounded-xl border border-stone-700 bg-[#12101b] px-4 py-2 text-sm text-stone-200 hover:border-[#b48a3c] transition-all"
+                                className="min-h-11 lg:hidden rounded-xl border border-stone-700 bg-[#12101b] px-4 py-2 text-sm text-stone-200 hover:border-[#b48a3c] transition-all"
+                                aria-expanded={showFilters}
+                                aria-controls="mobile-product-filters"
                             >
                                 <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                                 </svg>
-                                Filters
+                                Filter / Categories{selectedCategory ? `: ${selectedCategory.name}` : ""}
                             </button>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs uppercase tracking-wider text-stone-500">View:</span>
                                 <button
                                     onClick={() => setViewMode("grid")}
-                                    className={`p-2 rounded-lg ${viewMode === "grid" ? "bg-[#b48a3c] text-[#0f0a1a]" : "text-stone-400 hover:text-white"}`}
+                                    className={`inline-flex h-11 w-11 items-center justify-center rounded-lg ${viewMode === "grid" ? "bg-[#b48a3c] text-[#0f0a1a]" : "text-stone-400 hover:text-white"}`}
+                                    aria-label="Grid view"
+                                    aria-pressed={viewMode === "grid"}
                                 >
                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm11 0h7v7h-7v-7z" />
@@ -1125,7 +1068,9 @@ setPagination(response.data?.pagination || null);
                                 </button>
                                 <button
                                     onClick={() => setViewMode("list")}
-                                    className={`p-2 rounded-lg ${viewMode === "list" ? "bg-[#b48a3c] text-[#0f0a1a]" : "text-stone-400 hover:text-white"}`}
+                                    className={`inline-flex h-11 w-11 items-center justify-center rounded-lg ${viewMode === "list" ? "bg-[#b48a3c] text-[#0f0a1a]" : "text-stone-400 hover:text-white"}`}
+                                    aria-label="List view"
+                                    aria-pressed={viewMode === "list"}
                                 >
                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z" />
@@ -1133,10 +1078,10 @@ setPagination(response.data?.pagination || null);
                                 </button>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs uppercase tracking-wider text-stone-500">Sort:</span>
-                                <div className="min-w-[220px]">
+                        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:w-auto">
+                            <div className="flex min-w-0 items-center gap-2">
+                                <span className="shrink-0 text-xs uppercase tracking-wider text-stone-500">Sort:</span>
+                                <div className="min-w-0 flex-1 sm:min-w-[220px] sm:flex-none">
                                     <Select
                                         instanceId="sort-select"
                                         value={sortSelectOptions.find((option) => option.value === sortOption) || null}
@@ -1150,8 +1095,8 @@ setPagination(response.data?.pagination || null);
                                     />
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs uppercase tracking-wider text-stone-500">Show:</span>
+                            <div className="flex shrink-0 items-center gap-2">
+                                <span className="shrink-0 text-xs uppercase tracking-wider text-stone-500">Show:</span>
                                 <div className="w-[100px]">
                                     <Select
                                         instanceId="items-per-page-select"
@@ -1172,37 +1117,17 @@ setPagination(response.data?.pagination || null);
             </section>
 
             {/* Main Content */}
-            <section className="mx-auto grid max-w-[1440px] grid-cols-1 gap-8 px-4 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8 py-8">    {/* Filters Sidebar */}
-                <aside className={`${showFilters ? "block" : "hidden"} lg:block rounded-2xl border border-stone-800 bg-[#11101a] p-6 shadow-xl`}>
+            <section className="mx-auto grid max-w-[1440px] grid-cols-1 gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8">    {/* Filters Sidebar */}
+                <aside className="hidden rounded-2xl border border-stone-800 bg-[#11101a] p-6 shadow-xl lg:block">
                     <h2 className="text-lg font-semibold uppercase text-stone-200 tracking-wider mb-6 flex items-center">
                         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                         </svg>
-                        Filters
+                        Categories
                     </h2>
 
                     <div className="space-y-6">
-                        {/* Categories */}
-                        <div>
-                            <p className="text-sm uppercase tracking-wider text-stone-400 mb-3 font-medium">Categories</p>
-                            <div className="space-y-2 max-h-48 overflow-auto pr-2">
-                                {categories.length === 0 ? (
-                                    <p className="text-sm text-stone-500">No categories available</p>
-                                ) : (
-                                    categories.map((category) => (
-                                        <label key={category.id} className="flex items-center gap-3 text-xs text-stone-200 hover:text-white cursor-pointer group">
-                                            <input
-                                                type="checkbox"
-                                                checked={categoryFilter.includes(category.id)}
-                                                onChange={() => toggleCategory(category.id)}
-                                                className="h-4 w-4 accent-[#b48a3c] rounded"
-                                            />
-                                            <span className="group-hover:text-[#b48a3c] transition-colors">{category.name}</span>
-                                        </label>
-                                    ))
-                                )}
-                            </div>
-                        </div>
+                        <CategoryHierarchy categories={categories} selectedCategoryId={selectedCategoryId} onSelect={selectCategory} />
 
                         {/* Price Range */}
                         {/* <div>
@@ -1266,6 +1191,17 @@ setPagination(response.data?.pagination || null);
                     </div>
                 </aside>
 
+                {showFilters ? <div id="mobile-product-filters" className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Filter products by category">
+                    <button type="button" aria-label="Close category filters" onClick={() => setShowFilters(false)} className="absolute inset-0 h-full w-full bg-black/70 backdrop-blur-sm" />
+                    <aside className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-3xl border border-stone-700 bg-[#11101a] p-6 shadow-2xl">
+                        <div className="mb-5 flex items-center justify-between border-b border-stone-800 pb-4">
+                            <div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d4af37]">Browse</p><h2 className="mt-1 font-serif text-xl text-white">Categories</h2></div>
+                            <button type="button" onClick={() => setShowFilters(false)} className="min-h-11 rounded-lg border border-stone-700 px-3 py-2 text-sm text-stone-300 hover:border-[#d4af37] hover:text-[#d4af37]">Close</button>
+                        </div>
+                        <CategoryHierarchy categories={categories} selectedCategoryId={selectedCategoryId} onSelect={selectCategory} />
+                    </aside>
+                </div> : null}
+
                 {/* Products Grid */}
                 <section className="space-y-6" ref={productsTopRef}>
                     {isLoading && (
@@ -1289,10 +1225,10 @@ setPagination(response.data?.pagination || null);
                             <svg className="w-16 h-16 mx-auto mb-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                            <h2 className="text-xl font-semibold text-white mb-2">No products found</h2>
+                            <h2 className="text-xl font-semibold text-white mb-2">{selectedCategoryId ? "No products found in this category." : "No products found"}</h2>
                             <p className="text-sm text-stone-400 mb-4">Try adjusting your filters or search terms.</p>
                             <button onClick={clearFilters} className="rounded-xl border border-[#b48a3c] px-6 py-3 text-[#b48a3c] hover:bg-[#b48a3c] hover:text-[#0f0a1a] transition-all">
-                                Clear Filters
+                                View all products
                             </button>
                         </div>
                     )}

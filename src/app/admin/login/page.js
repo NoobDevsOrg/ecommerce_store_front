@@ -68,7 +68,7 @@ export default function AdminLoginPage() {
             <p className="text-xs uppercase tracking-[0.3em] text-amber-200/90">Admin Console</p>
             <h1 className="mt-3 text-3xl font-semibold leading-tight">Manage your business</h1>
           </div>
-          <p className="text-sm text-slate-200/90">Secure JWT login with tenant-aware API isolation.</p>
+          <p className="text-sm text-slate-200/90">Secure sign-in with protected API isolation.</p>
         </div>
 
         <div className="p-6 sm:p-8">
