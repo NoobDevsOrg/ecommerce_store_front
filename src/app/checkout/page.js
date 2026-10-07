@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCustomerAuth } from "../../components/hooks/useCustomerAuth";
 import { api } from "../../lib/api";
-import { buildCheckoutAddressDraft, canResumeFinalizedCheckout, clearCheckoutResumeToken, getCheckoutResumeToken, isIdentityFinalizedCheckoutSession, mapCheckoutValidationErrors, setCheckoutResumeToken, setCheckoutSessionContext } from "../../lib/checkoutSession";
+import { buildCheckoutAddressDraft, canResumeFinalizedCheckout, clearCheckoutResumeToken, getCheckoutPaymentIdempotencyKey, getCheckoutResumeToken, isIdentityFinalizedCheckoutSession, mapCheckoutValidationErrors, setCheckoutResumeToken, setCheckoutSessionContext } from "../../lib/checkoutSession";
 import { clearCart, getCart, getCartRevision } from "../../store/cartStore";
 import FormattedAddressBlock from "../../components/address/FormattedAddressBlock";
 import { callingCodeForCountry, COUNTRY_OPTIONS, validateAddressContact } from "../../lib/addressContact";
@@ -260,6 +260,7 @@ export default function CheckoutPage() {
     const operation = (async () => {
       const startFresh = async () => {
         clearCheckoutResumeToken();
+        prepareKey.current = "";
         token.current = "";
         startKey.current = key();
         const response = await api.checkout.sessions.start(items, startKey.current);
@@ -505,7 +506,7 @@ export default function CheckoutPage() {
       const summary = (await api.checkout.prepare({
         items: cart,
         addressId,
-        idempotencyKey: prepareKey.current
+        idempotencyKey: prepareKey.current || (prepareKey.current = getCheckoutPaymentIdempotencyKey())
       }))?.data;
       setPrepared(summary);
       window.sessionStorage.setItem(PENDING_PAYMENT_KEY, JSON.stringify({

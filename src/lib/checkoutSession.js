@@ -3,6 +3,7 @@
 // exposed to an XSS compromise; it is never treated as customer authentication.
 const CHECKOUT_RESUME_TOKEN_KEY = "sagunthala_checkout_resume_token";
 const CHECKOUT_SESSION_CONTEXT_KEY = "sagunthala_checkout_session_context";
+const CHECKOUT_PAYMENT_IDEMPOTENCY_KEY = "sagunthala_checkout_payment_idempotency_key";
 const IDENTITY_VERIFIED = "IDENTITY_VERIFIED";
 
 const isBrowser = () => typeof window !== "undefined";
@@ -61,6 +62,19 @@ export function clearCheckoutResumeToken() {
   if (!isBrowser()) return;
   window.sessionStorage.removeItem(CHECKOUT_RESUME_TOKEN_KEY);
   window.sessionStorage.removeItem(CHECKOUT_SESSION_CONTEXT_KEY);
+  window.sessionStorage.removeItem(CHECKOUT_PAYMENT_IDEMPOTENCY_KEY);
+}
+
+// Keep the payment-preparation identity for the lifetime of one resumable
+// checkout. A refresh therefore resumes the same pending order, while a fresh
+// checkout starts with a fresh identity and can contain a different cart.
+export function getCheckoutPaymentIdempotencyKey() {
+  if (!isBrowser()) return "";
+  const existing = window.sessionStorage.getItem(CHECKOUT_PAYMENT_IDEMPOTENCY_KEY);
+  if (existing && /^[A-Za-z0-9_-]{8,128}$/.test(existing)) return existing;
+  const generated = globalThis.crypto?.randomUUID?.() || `checkout_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  window.sessionStorage.setItem(CHECKOUT_PAYMENT_IDEMPOTENCY_KEY, generated);
+  return generated;
 }
 
 const normalizedItems = (items) => (Array.isArray(items) ? items : [])
@@ -111,4 +125,4 @@ export function canResumeFinalizedCheckout(session, items, cartRevision = 0) {
     && sameCheckoutItems(session.cart, items);
 }
 
-export { CHECKOUT_RESUME_TOKEN_KEY, CHECKOUT_SESSION_CONTEXT_KEY, IDENTITY_VERIFIED };
+export { CHECKOUT_RESUME_TOKEN_KEY, CHECKOUT_SESSION_CONTEXT_KEY, CHECKOUT_PAYMENT_IDEMPOTENCY_KEY, IDENTITY_VERIFIED };

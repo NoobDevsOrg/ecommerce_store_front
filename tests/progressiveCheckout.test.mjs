@@ -49,6 +49,8 @@ const adminNotificationsSource = readFileSync(new URL("../src/app/admin/notifica
 const notificationListSource = readFileSync(new URL("../src/components/notifications/NotificationList.js", import.meta.url), "utf8");
 const notificationCountSource = readFileSync(new URL("../src/lib/notificationCount.js", import.meta.url), "utf8");
 const orderDetailSource = readFileSync(new URL("../src/app/account/orders/[orderReference]/page.js", import.meta.url), "utf8");
+const ordersSource = readFileSync(new URL("../src/app/account/orders/page.js", import.meta.url), "utf8");
+const completePaymentSource = readFileSync(new URL("../src/components/orders/CompletePaymentButton.js", import.meta.url), "utf8");
 const celebrationSource = readFileSync(new URL("../src/components/orders/PaymentSuccessCelebration.js", import.meta.url), "utf8");
 const deliveredReviewSource = readFileSync(new URL("../src/components/orders/DeliveredReviewPrompt.js", import.meta.url), "utf8");
 const productListingSource = readFileSync(new URL("../src/app/products/page.js", import.meta.url), "utf8");
@@ -439,6 +441,33 @@ test("payment celebration is gated by trusted PAID state, and purchase review wa
   assert.match(deliveredReviewSource, /Write a Review/);
   assert.match(deliveredReviewSource, /Review submitted/);
   assert.doesNotMatch(orderDetailSource, /Product review/);
+});
+
+test("pending orders expose their exact-order payment path while paid orders keep purchase actions", () => {
+  assert.match(ordersSource, /const paymentPending = order\.paymentStatus === "PENDING"/);
+  assert.match(ordersSource, /Payment pending/);
+  assert.match(ordersSource, /This order has been created, but payment hasn(?:'|&apos;)t been completed\./);
+  assert.match(ordersSource, /label="Complete payment"/);
+  assert.match(ordersSource, /paymentPending \? <CompletePaymentButton[\s\S]*: first \? <OrderPurchaseActions/);
+  assert.match(orderDetailSource, /Subtotal/);
+  assert.match(orderDetailSource, /GST/);
+  assert.match(orderDetailSource, /Shipping/);
+  assert.match(orderDetailSource, /Grand total/);
+  assert.match(orderDetailSource, /Payment status/);
+  assert.match(orderDetailSource, /label=\{`Pay \$\{money\(order\.totalAmount\)\}`\}/);
+  assert.match(orderDetailSource, /\{!paymentPending \? <OrderPurchaseActions/);
+  assert.match(completePaymentSource, /createOrder\(orderReference\)/);
+  assert.match(completePaymentSource, /payment\.orderReference !== orderReference/);
+  assert.doesNotMatch(completePaymentSource, /clearCart/);
+});
+
+test("checkout retains one payment idempotency identity across a resumable session", () => {
+  storage.clear();
+  const first = checkoutStorage.getCheckoutPaymentIdempotencyKey();
+  assert.match(first, /^[A-Za-z0-9_-]{8,128}$/);
+  assert.equal(checkoutStorage.getCheckoutPaymentIdempotencyKey(), first);
+  checkoutStorage.clearCheckoutResumeToken();
+  assert.equal(storage.get(checkoutStorage.CHECKOUT_PAYMENT_IDEMPOTENCY_KEY), undefined);
 });
 
 test("premium catalogue cards and detail discovery use real product, review, and category data", () => {
