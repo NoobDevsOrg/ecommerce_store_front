@@ -51,7 +51,7 @@ export default function Footer() {
           <div className="space-y-6">
             <h4 className="text-[11px] uppercase tracking-[0.3em] font-bold text-white">Collections</h4>
             <ul className="space-y-3">
-              {['Temple Jewellery', 'Bridal Sets', 'Gold Coins', 'Diamond Vault'].map(link => (
+              {['Temple Jewellery'].map(link => (
                 <li key={link}>
                   <span className="text-stone-500 text-sm font-light">{link}</span>
                 </li>
