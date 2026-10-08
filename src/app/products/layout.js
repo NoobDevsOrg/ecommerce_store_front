@@ -22,6 +22,9 @@ export const metadata = {
     title,
     description,
   },
+  verification: {
+    google: "K9KRNLR5sHmrxSotlwziFdIBTDgnHEwLZbVkhNcr6es",
+  },
 };
 
 async function getPublishedProductLinks() {
