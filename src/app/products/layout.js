@@ -8,6 +8,7 @@ const description = "Browse Sagunthala's published temple and dance jewellery co
 const canonical = getAbsoluteSiteUrl("/products");
 
 export const metadata = {
+  metadataBase: new URL("https://www.sagunthaladancejewellery.com"),
   title: { absolute: title },
   description,
   alternates: { canonical },
