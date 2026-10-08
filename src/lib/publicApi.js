@@ -36,15 +36,19 @@ async function publicFetch(endpoint, options = {}) {
   if (!BASE_URL) {
     throw new PublicApiError("The catalogue is temporarily unavailable.", 503);
   }
+  const { timeoutMs, ...fetchOptions } = options;
   const url = `${BASE_URL}${endpoint}`;
 
   try {
     const response = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
-        ...options.headers,
+        ...fetchOptions.headers,
       },
-      ...options,
+      // A server route must fail closed rather than consume a Vercel function
+      // while an upstream catalogue request is stalled.
+      ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
+      ...fetchOptions,
     });
 
     const contentType = response.headers.get("content-type") || "";
@@ -70,14 +74,14 @@ async function publicFetch(endpoint, options = {}) {
  * Fetch all published products with pagination
  * GET /products/public/products?page=1&limit=20
  */
-export async function getPublicProducts(page = 1, limit = 20, search = "") {
+export async function getPublicProducts(page = 1, limit = 20, search = "", options = {}) {
   const params = new URLSearchParams({
     page,
     limit,
     ...(search && { search }),
   });
 
-  const response = await publicFetch(`/products/public/products?${params}`);
+  const response = await publicFetch(`/products/public/products?${params}`, options);
   return response.data;
 }
 

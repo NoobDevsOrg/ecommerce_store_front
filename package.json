@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:seo": "node --test tests/seo-foundation.test.mjs",
+    "test:seo": "node --test tests/seo-foundation.test.mjs tests/sitemap-performance.test.mjs",
     "verify:seo:production": "node tests/verify-seo-production.mjs"
   },
   "dependencies": {
