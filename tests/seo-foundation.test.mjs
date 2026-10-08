@@ -18,12 +18,18 @@ test("sitemap emits only published products with absolute canonical URLs", () =>
     { id: "published", slug: "temple-necklace", is_published: true, updated_at: "2026-10-04T00:00:00.000Z" },
     { id: "unpublished", slug: "private-piece", is_published: false },
     { id: "missing-slug", is_published: true },
+    { id: "deleted", slug: "deleted-piece", is_published: true, is_deleted: true },
+    { id: "sample", slug: "abc-product", is_published: true },
+    { id: "demo", slug: "demo-necklace", is_published: true },
+    { id: "bad-slug", slug: "gold & pearl", is_published: true },
   ]);
 
   assert.deepEqual(entries.map((entry) => entry.url), ["https://www.sagunthaladancejewellery.com/products/temple-necklace"]);
   assert.equal(entries[0].lastModified.toISOString(), "2026-10-04T00:00:00.000Z");
 });
 
-test("product URL encoding preserves one safe crawlable slug route", () => {
-  assert.equal(absoluteProductUrl({ slug: "gold & pearl" }), "https://www.sagunthaladancejewellery.com/products/gold%20%26%20pearl");
+test("product URL generation rejects unpublished, deleted, test, and malformed records", () => {
+  assert.equal(absoluteProductUrl({ slug: "gold & pearl", is_published: true }), null);
+  assert.equal(absoluteProductUrl({ slug: "abc-product", is_published: true }), null);
+  assert.equal(absoluteProductUrl({ slug: "real-piece", is_published: false }), null);
 });

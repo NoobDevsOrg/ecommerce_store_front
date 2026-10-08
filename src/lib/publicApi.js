@@ -82,6 +82,16 @@ export async function getPublicProducts(page = 1, limit = 20, search = "") {
 }
 
 /**
+ * Fetch the category facets from the same public catalogue authority used by
+ * the listing. This is intentionally server-safe so the initial /products
+ * HTML describes the live catalogue rather than a client-side empty state.
+ */
+export async function getPublicProductFilters() {
+  const response = await publicFetch("/products/public/products/filters");
+  return response.data;
+}
+
+/**
  * Fetch single product by ID
  * GET /products/public/products/:productId
  */

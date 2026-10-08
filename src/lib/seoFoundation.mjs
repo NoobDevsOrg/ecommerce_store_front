@@ -23,14 +23,22 @@ export function resolveSiteUrl({ configuredUrl, nodeEnv }) {
 }
 
 export function isIndexablePublishedProduct(product) {
-  if (!product || typeof product.slug !== "string" || !product.slug.trim()) return false;
+  if (!product || typeof product.slug !== "string") return false;
 
-  // The public catalogue endpoint is the authoritative publication boundary.
-  // Retain defensive guards for callers/tests that include publication flags.
-  return product.is_published !== false
-    && product.isPublished !== false
-    && product.published !== false
-    && String(product.status || "").toUpperCase() !== "UNPUBLISHED";
+  const slug = product.slug.trim();
+  const isPublished = product.is_published === true
+    || product.isPublished === true
+    || product.published === true;
+  const isDeleted = product.is_deleted === true || product.isDeleted === true;
+  // Public product URLs are a contract, not a name-derived convenience. Old
+  // sample records (such as abc-product, demo-* and test-*) must never become
+  // crawlable merely because a stale listing response contained them.
+  const isTestRecord = /(?:^|-)(?:abc|demo|test)(?:-|$)/i.test(slug);
+
+  return isPublished
+    && !isDeleted
+    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+    && !isTestRecord;
 }
 
 export function absoluteProductUrl(product, siteUrl = CANONICAL_PRODUCTION_SITE_URL) {

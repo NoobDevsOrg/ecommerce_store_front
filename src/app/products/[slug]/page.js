@@ -12,8 +12,15 @@ function getPrimaryImage(product) {
 
 function getProductMetadata(product) {
   const primaryImage = getPrimaryImage(product);
-  const title = product.meta_title?.trim() || `${product.name} | ${BRAND_NAME}`;
-  const description = product.meta_desc?.trim() || product.description?.trim() || undefined;
+  const identity = product.sku?.trim() || product.slug;
+  const baseTitle = product.meta_title?.trim() || product.name;
+  // Keep any editorial metadata, but add the immutable product identifier so
+  // a copied title/description in the catalogue cannot create duplicate SEO
+  // metadata across two otherwise distinct product detail pages.
+  const title = `${baseTitle} | ${identity} | ${BRAND_NAME}`;
+  const baseDescription = product.meta_desc?.trim() || product.description?.trim()
+    || `Discover ${product.name}, a handcrafted piece from Sagunthala Jewellers.`;
+  const description = `${baseDescription} Product reference: ${identity}.`;
   const canonical = getAbsoluteSiteUrl(`/products/${product.slug}`);
 
   return {
@@ -77,6 +84,9 @@ export default async function Page({ params }) {
 
   const primaryImage = getPrimaryImage(product);
   const canonicalUrl = getAbsoluteSiteUrl(`/products/${product.slug}`);
+  const hasVisiblePrice = product.isPurchasable === true
+    && Number.isFinite(Number(product.price))
+    && Number(product.price) > 0;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -84,12 +94,11 @@ export default async function Page({ params }) {
     ...(product.description ? { description: product.description } : {}),
     ...(product.sku ? { sku: product.sku } : {}),
     ...(primaryImage?.url ? { image: product.images.map((image) => image.url).filter(Boolean) } : {}),
-    ...(product.price !== null && product.price !== undefined
+    ...(product.stock_qty !== null && product.stock_qty !== undefined
       ? {
         offers: {
           "@type": "Offer",
-          price: String(product.price),
-          priceCurrency: "INR",
+          ...(hasVisiblePrice ? { price: String(product.price), priceCurrency: "INR" } : {}),
           availability: product.stock_qty > 0
             ? "https://schema.org/InStock"
             : "https://schema.org/OutOfStock",

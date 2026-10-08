@@ -56,7 +56,7 @@ function CategoryNode({ category, selectedCategoryId, onSelect, depth = 0 }) {
   </li>;
 }
 
-export default function CategoryHierarchy({ categories, selectedCategoryId, onSelect }) {
+export default function CategoryHierarchy({ categories, selectedCategoryId, onSelect, unavailable = false }) {
   const tree = categoryTree(categories);
 
   return <nav aria-label="Product categories">
@@ -68,6 +68,6 @@ export default function CategoryHierarchy({ categories, selectedCategoryId, onSe
     >
       All Products
     </button>
-    {tree.length ? <ul className="space-y-0.5">{tree.map((category) => <CategoryNode key={category.id} category={category} selectedCategoryId={selectedCategoryId} onSelect={onSelect} />)}</ul> : <p className="px-3 py-2 text-sm text-stone-500">No categories available</p>}
+    {tree.length ? <ul className="space-y-0.5">{tree.map((category) => <CategoryNode key={category.id} category={category} selectedCategoryId={selectedCategoryId} onSelect={onSelect} />)}</ul> : <p className="px-3 py-2 text-sm text-stone-500">{unavailable ? "Categories are temporarily unavailable." : "No categories available"}</p>}
   </nav>;
 }

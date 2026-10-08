@@ -1,6 +1,6 @@
-import { getPublicProducts } from "../lib/publicApi";
+import { getPublicProductBySlug, getPublicProducts } from "../lib/publicApi";
 import { getAbsoluteSiteUrl } from "../lib/siteUrl";
-import { buildProductSitemapEntries } from "../lib/seoFoundation.mjs";
+import { buildProductSitemapEntries, isIndexablePublishedProduct } from "../lib/seoFoundation.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +27,23 @@ export default async function sitemap() {
       allProducts.push(...(result?.products || []));
     }
 
+    // Re-read every candidate through the canonical detail endpoint. This
+    // protects the sitemap from a stale list cache or a product which no
+    // longer resolves at /products/[slug]. A partial result is not safe: if
+    // this authority check fails, only the two static public routes are sent.
+    const verifiedProducts = await Promise.all(allProducts
+      .filter(isIndexablePublishedProduct)
+      .map(async (candidate) => {
+        const product = await getPublicProductBySlug(candidate.slug);
+        if (!isIndexablePublishedProduct(product) || product.slug !== candidate.slug) {
+          throw new Error("Product sitemap candidate no longer resolves");
+        }
+        return product;
+      }));
+
     return [
       ...sitemapEntries,
-      ...buildProductSitemapEntries(allProducts, getAbsoluteSiteUrl("/")),
+      ...buildProductSitemapEntries(verifiedProducts, getAbsoluteSiteUrl("/")),
     ];
   } catch {
     // Never invent product URLs when the authoritative catalogue cannot be read.
