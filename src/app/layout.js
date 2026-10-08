@@ -51,6 +51,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      <meta name="google-site-verification" content="K9KRNLR5sHmrxSotlwziFdIBTDgnHEwLZbVkhNcr6es" />
       <body
         className="bg-slate-50 text-slate-900 antialiased transition-colors selection:bg-amber-300/40 selection:text-amber-900 dark:bg-[#0f1115] dark:text-slate-100 dark:selection:bg-amber-700/40 dark:selection:text-amber-200"
         suppressHydrationWarning
