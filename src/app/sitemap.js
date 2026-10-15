@@ -1,12 +1,15 @@
-import { getPublicProducts } from "../lib/publicApi";
+import { getPublicProductFilters, getPublicProducts } from "../lib/publicApi";
 import { getAbsoluteSiteUrl } from "../lib/siteUrl";
 import { buildProductSitemapEntries, isIndexablePublishedProduct } from "../lib/seoFoundation.mjs";
+import { collectionHref } from "../lib/categoryUrl";
+import { publicCollectionCategories } from "../lib/collectionData";
 
 export const dynamic = "force-dynamic";
 
 const staticRoutes = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/products", changeFrequency: "daily", priority: 0.9 },
+  { path: "/collections", changeFrequency: "weekly", priority: 0.8 },
 ];
 const SITEMAP_CATALOGUE_LIMIT = 1000;
 const SITEMAP_CATALOGUE_TIMEOUT_MS = 5_000;
@@ -23,17 +26,23 @@ export default async function sitemap() {
     // One bounded, authoritative catalogue request. The API's public-query
     // predicate already limits records to published, non-deleted products;
     // the local predicate is a defensive URL-shape/demo-record guard.
-    const catalogue = await getPublicProducts(
-      1,
-      SITEMAP_CATALOGUE_LIMIT,
-      "",
-      { timeoutMs: SITEMAP_CATALOGUE_TIMEOUT_MS },
-    );
+    const [catalogue, filters] = await Promise.all([
+      getPublicProducts(1, SITEMAP_CATALOGUE_LIMIT, "", { timeoutMs: SITEMAP_CATALOGUE_TIMEOUT_MS }),
+      getPublicProductFilters({ timeoutMs: SITEMAP_CATALOGUE_TIMEOUT_MS }),
+    ]);
     const products = Array.isArray(catalogue?.products) ? catalogue.products : [];
+    const categories = Array.isArray(filters?.categories) ? filters.categories : [];
+    const collectionEntries = publicCollectionCategories(categories, products)
+      .flatMap((category) => {
+        const path = collectionHref(category);
+        const url = path ? getAbsoluteSiteUrl(path) : null;
+        return url ? [{ url, changeFrequency: "weekly", priority: 0.7 }] : [];
+      });
 
     return [
       ...sitemapEntries,
       ...buildProductSitemapEntries(products.filter(isIndexablePublishedProduct), getAbsoluteSiteUrl("/")),
+      ...collectionEntries,
     ];
   } catch {
     // Never invent product URLs when the authoritative catalogue cannot be

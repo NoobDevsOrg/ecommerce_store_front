@@ -1,6 +1,8 @@
 import ProductDetailClient from "./ProductDetailClient";
-import { getPublicProductBySlug, PublicApiError } from "../../../lib/publicApi";
+import { getPublicProductBySlug, getPublicProductFilters, PublicApiError } from "../../../lib/publicApi";
 import { getAbsoluteSiteUrl } from "../../../lib/siteUrl";
+import Breadcrumbs from "../../../components/seo/Breadcrumbs";
+import { categoryAncestors, collectionHref, isIndexablePublicCategory } from "../../../lib/categoryUrl";
 import { notFound } from "next/navigation";
 
 const BRAND_NAME = "Sagunthala Jewellers";
@@ -82,6 +84,31 @@ export default async function Page({ params }) {
   }
   if (!product) notFound();
 
+  let categories = [];
+  try {
+    const filters = await getPublicProductFilters({ timeoutMs: 5_000 });
+    categories = Array.isArray(filters?.categories) ? filters.categories : [];
+  } catch {
+    // A product remains valid even if category navigation is temporarily
+    // unavailable. Do not invent a category URL in that case.
+  }
+
+  const category = categories.find((item) => item.id === product.category_id) || null;
+  const categoryIsPublic = isIndexablePublicCategory(category);
+  const categoryHref = categoryIsPublic ? collectionHref(category) : null;
+  const breadcrumbs = [
+    { name: "Home", href: "/" },
+    ...(categoryIsPublic
+      ? [
+        ...categoryAncestors(categories, category.id)
+          .filter(isIndexablePublicCategory)
+          .map((item) => ({ name: item.name, href: collectionHref(item) })),
+        { name: category.name, href: categoryHref },
+      ]
+      : []),
+    { name: product.name, href: `/products/${product.slug}` },
+  ];
+
   const primaryImage = getPrimaryImage(product);
   const canonicalUrl = getAbsoluteSiteUrl(`/products/${product.slug}`);
   const hasVisiblePrice = product.isPurchasable === true
@@ -116,7 +143,8 @@ export default async function Page({ params }) {
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
-      <ProductDetailClient product={product} />
+      <Breadcrumbs items={breadcrumbs} />
+      <ProductDetailClient product={product} categoryHref={categoryHref} showBreadcrumbs={false} />
 
     </>
   );

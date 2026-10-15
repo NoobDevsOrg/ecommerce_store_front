@@ -90,8 +90,8 @@ export async function getPublicProducts(page = 1, limit = 20, search = "", optio
  * the listing. This is intentionally server-safe so the initial /products
  * HTML describes the live catalogue rather than a client-side empty state.
  */
-export async function getPublicProductFilters() {
-  const response = await publicFetch("/products/public/products/filters");
+export async function getPublicProductFilters(options = {}) {
+  const response = await publicFetch("/products/public/products/filters", options);
   return response.data;
 }
 

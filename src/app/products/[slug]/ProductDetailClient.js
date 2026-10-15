@@ -8,7 +8,7 @@ import ProductActions from "../../../components/product/ProductActions";
 import RatingStars from "../../../components/product/RatingStars";
 import RelatedProductSection from "../../../components/product/RelatedProductSection";
 
-export default function ProductDetailPage({ product }) {
+export default function ProductDetailPage({ product, categoryHref = null, showBreadcrumbs = true }) {
     // The detailed public Product response exposes `images` as Product Image
     // records. `image_urls` intentionally contains only strings, so it cannot
     // provide React keys or preserve the selected Product Image identity.
@@ -70,7 +70,7 @@ export default function ProductDetailPage({ product }) {
     return (
         <main className="bg-[#0f0a1a] min-h-screen">
             {/* Breadcrumb */}
-            <section className="border-b border-stone-900/50 px-[clamp(1rem,2.5vw,2rem)] py-[clamp(0.75rem,1.5vw,1.5rem)]">
+            {showBreadcrumbs ? <section className="border-b border-stone-900/50 px-[clamp(1rem,2.5vw,2rem)] py-[clamp(0.75rem,1.5vw,1.5rem)]">
                 <div className="mx-auto w-full max-w-[min(1700px,96vw)]">
                     <div className="flex items-center gap-3 text-sm overflow-x-auto whitespace-nowrap">
                         <Link href="/" className="text-stone-400 hover:text-stone-200 transition-colors">
@@ -84,7 +84,7 @@ export default function ProductDetailPage({ product }) {
                         <span className="text-[#b48a3c]">{product.name}</span>
                     </div>
                 </div>
-            </section>
+            </section> : null}
 
             {/* Product Details */}
             <section className="px-[clamp(1rem,2.5vw,2rem)] py-[clamp(2rem,5vw,5rem)]">
@@ -159,7 +159,7 @@ export default function ProductDetailPage({ product }) {
                     {/* Product Info */}
                     <div className="flex flex-col xl:pl-[clamp(0.25rem,1vw,0.75rem)]">
                         <div className="mb-5 flex flex-wrap gap-2">
-                            {product.category_name ? <Link href={`/products?category=${encodeURIComponent(product.category_id || "")}`} className="rounded-full border border-[#b48a3c]/35 bg-[#b48a3c]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#d4af37] transition hover:border-[#d4af37] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d4af37]">{product.category_name}</Link> : null}
+                            {product.category_name && categoryHref ? <Link href={categoryHref} className="rounded-full border border-[#b48a3c]/35 bg-[#b48a3c]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#d4af37] transition hover:border-[#d4af37] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d4af37]">{product.category_name}</Link> : product.category_name ? <span className="rounded-full border border-[#b48a3c]/35 bg-[#b48a3c]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#d4af37]">{product.category_name}</span> : null}
                             {product.collection_name ? <Link href={`/products?search=${encodeURIComponent(product.collection_name)}`} className="rounded-full border border-stone-700 bg-stone-900/60 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-stone-300 transition hover:border-stone-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d4af37]">{product.collection_name}</Link> : null}
                         </div>
 

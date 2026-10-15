@@ -1,6 +1,23 @@
 import Link from "next/link";
+import { collectionHref } from "../../lib/categoryUrl";
+import { getPublicProductFilters } from "../../lib/publicApi";
 
-export default function Footer() {
+export default async function Footer() {
+  let collectionLinks = [];
+  try {
+    const filters = await getPublicProductFilters({ timeoutMs: 5_000 });
+    const categories = Array.isArray(filters?.categories) ? filters.categories : [];
+    // Only link labels that map exactly to an active, public category. This
+    // keeps editorial placeholders from becoming false collection URLs.
+    collectionLinks = ["Temple Jewellery"].flatMap((name) => {
+      const category = categories.find((item) => item.name === name);
+      const href = collectionHref(category);
+      return href ? [{ name, href }] : [];
+    });
+  } catch {
+    // Keep the current non-link label when the category authority is down.
+  }
+
   return (
     <footer className="bg-[#0a0712] border-t border-stone-900 pt-20 pb-10">
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
@@ -51,11 +68,11 @@ export default function Footer() {
           <div className="space-y-6">
             <h4 className="text-[11px] uppercase tracking-[0.3em] font-bold text-white">Collections</h4>
             <ul className="space-y-3">
-              {['Temple Jewellery'].map(link => (
-                <li key={link}>
-                  <span className="text-stone-500 text-sm font-light">{link}</span>
+              {collectionLinks.length ? collectionLinks.map((link) => (
+                <li key={link.name}>
+                  <Link href={link.href} className="text-stone-500 text-sm font-light transition hover:text-[#d4af37]">{link.name}</Link>
                 </li>
-              ))}
+              )) : <li><span className="text-stone-500 text-sm font-light">Temple Jewellery</span></li>}
             </ul>
           </div>
 

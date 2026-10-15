@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { collectionHref } from "../../lib/categoryUrl";
+
 const ordered = (categories) => [...categories].sort((left, right) => (
   Number(left.sort_order || left.sortOrder || 0) - Number(right.sort_order || right.sortOrder || 0)
   || String(left.name || "").localeCompare(String(right.name || ""))
@@ -40,17 +43,19 @@ export const selectedCategoryIds = (categories = [], categoryId = "") => {
 
 function CategoryNode({ category, selectedCategoryId, onSelect, depth = 0 }) {
   const selected = selectedCategoryId === category.id;
-  return <li>
+  const href = collectionHref(category);
+  return <li className="flex flex-wrap items-center">
     <button
       type="button"
       onClick={() => onSelect(category)}
-      className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${selected ? "bg-[#b48a3c]/15 font-semibold text-[#f0d984] ring-1 ring-inset ring-[#d4af37]/35" : "text-stone-300 hover:bg-white/5 hover:text-white"}`}
+      className={`min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-sm transition ${selected ? "bg-[#b48a3c]/15 font-semibold text-[#f0d984] ring-1 ring-inset ring-[#d4af37]/35" : "text-stone-300 hover:bg-white/5 hover:text-white"}`}
       style={{ paddingLeft: `${12 + depth * 16}px` }}
       aria-current={selected ? "true" : undefined}
     >
       <span className="min-w-0 truncate">{category.name}</span>
     </button>
-    {category.children.length ? <ul className="space-y-0.5" aria-label={`${category.name} subcategories`}>
+    {href ? <Link href={href} className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#d4af37] hover:text-[#f0d984]" aria-label={`Browse ${category.name}`}>Browse</Link> : null}
+    {category.children.length ? <ul className="w-full space-y-0.5" aria-label={`${category.name} subcategories`}>
       {category.children.map((child) => <CategoryNode key={child.id} category={child} selectedCategoryId={selectedCategoryId} onSelect={onSelect} depth={depth + 1} />)}
     </ul> : null}
   </li>;
