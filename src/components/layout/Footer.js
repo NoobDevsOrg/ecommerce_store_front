@@ -1,22 +1,20 @@
 import Link from "next/link";
-import { collectionHref } from "../../lib/categoryUrl";
-import { getPublicProductFilters } from "../../lib/publicApi";
+import { BUSINESS } from "../../lib/businessInfo";
 
-export default async function Footer() {
-  let collectionLinks = [];
-  try {
-    const filters = await getPublicProductFilters({ timeoutMs: 5_000 });
-    const categories = Array.isArray(filters?.categories) ? filters.categories : [];
-    // Only link labels that map exactly to an active, public category. This
-    // keeps editorial placeholders from becoming false collection URLs.
-    collectionLinks = ["Temple Jewellery"].flatMap((name) => {
-      const category = categories.find((item) => item.name === name);
-      const href = collectionHref(category);
-      return href ? [{ name, href }] : [];
-    });
-  } catch {
-    // Keep the current non-link label when the category authority is down.
-  }
+const exploreLinks = [
+  { href: "/products", label: "Products" },
+  { href: "/collections", label: "Collections" },
+  { href: "/about", label: "About Us" },
+  { href: "/contact", label: "Contact Us" },
+];
+
+const legalLinks = [
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms & Conditions" },
+  { href: "/shipping", label: "Shipping Policy" },
+];
+
+export default function Footer() {
 
   return (
     <footer className="bg-[#0a0712] border-t border-stone-900 pt-20 pb-10">
@@ -53,26 +51,26 @@ export default async function Footer() {
             <h4 className="text-[11px] uppercase tracking-[0.3em] font-bold text-white">The Boutique</h4>
             <div className="space-y-4 text-stone-400 text-sm font-light">
               <p className="flex items-start gap-3 italic">
-                <span className="text-[#b48a3c]">Address:</span> 38/46, N Mada St, near Kapaleeshwarar Temple, Vinayaka Nagar Colony, Mylapore, Chennai, Tamil Nadu - 600004.
+                <span className="text-[#b48a3c]">Address:</span> {BUSINESS.address}
               </p>
               <p className="flex items-center gap-3 italic">
                 <span className="text-[#b48a3c]">Phone:</span> +91 8189840100 / 7305873829
               </p>
               <p className="flex items-center gap-3 italic">
-                <span className="text-[#b48a3c]">Email:</span> sagunthalajewellers@gmail.com
+                <span className="text-[#b48a3c]">Email:</span> {BUSINESS.email}
               </p>
             </div>
           </div>
 
           {/* Navigation */}
           <div className="space-y-6">
-            <h4 className="text-[11px] uppercase tracking-[0.3em] font-bold text-white">Collections</h4>
+            <h4 className="text-[11px] uppercase tracking-[0.3em] font-bold text-white">Explore</h4>
             <ul className="space-y-3">
-              {collectionLinks.length ? collectionLinks.map((link) => (
-                <li key={link.name}>
+              {exploreLinks.map((link) => (
+                <li key={link.label}>
                   <Link href={link.href} className="text-stone-500 text-sm font-light transition hover:text-[#d4af37]">{link.name}</Link>
                 </li>
-              )) : <li><span className="text-stone-500 text-sm font-light">Temple Jewellery</span></li>}
+              ))}
             </ul>
           </div>
 
@@ -80,9 +78,9 @@ export default async function Footer() {
           <div className="space-y-6">
             <h4 className="text-[11px] uppercase tracking-[0.3em] font-bold text-white">Legal</h4>
             <ul className="space-y-3">
-              {['Privacy Policy', 'Refund Policy', 'Terms & Conditions', 'Shipping Info'].map(link => (
-                <li key={link}>
-                  <span className="text-stone-500 text-sm font-light">{link}</span>
+              {legalLinks.map((link) => (
+                <li key={link.label}>
+                  <Link href={link.href} className="text-stone-500 text-sm font-light transition hover:text-[#d4af37]">{link.label}</Link>
                 </li>
               ))}
             </ul>

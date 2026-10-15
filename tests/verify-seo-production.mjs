@@ -5,6 +5,7 @@ const site = (process.env.SITE_URL || "https://www.sagunthaladancejewellery.com"
 const sampleCount = Math.max(1, Number(process.env.PRODUCT_SAMPLE_COUNT || 3));
 const sitemapConcurrency = Math.max(1, Number(process.env.SITEMAP_CONCURRENCY || 8));
 const forbiddenProductPath = /\/products\/(?:abc-product|(?:demo|test)(?:-|$))/i;
+const informationPaths = ["/about", "/contact", "/privacy", "/terms", "/shipping"];
 
 async function get(pathOrUrl) {
   const url = new URL(pathOrUrl, `${site}/`).toString();
@@ -48,6 +49,18 @@ function productJsonLd(html) {
     const values = Array.isArray(parsed) ? parsed : [parsed];
     const product = values.find((value) => value?.["@type"] === "Product");
     if (product) return product;
+  }
+  return null;
+}
+
+function jsonLdByType(html, type) {
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+  for (const [, attrs, content] of scripts) {
+    if (!/type=["']application\/ld\+json["']/i.test(attrs)) continue;
+    const parsed = JSON.parse(content.trim());
+    const values = Array.isArray(parsed) ? parsed : [parsed];
+    const match = values.find((value) => value?.["@type"] === type);
+    if (match) return match;
   }
   return null;
 }
@@ -101,6 +114,33 @@ async function verifyProduct(url, expectedTitles, expectedDescriptions) {
   }
 }
 
+async function verifyCollection(url) {
+  const { body: html } = await get(url);
+  const title = html.match(/<title>([^<]+)<\/title>/i)?.[1]?.trim();
+  const description = metaContent(html, "description");
+  assert.ok(title && /Sagunthala Dance Jewellery/i.test(title), `${url} has no collection title`);
+  assert.ok(description, `${url} has no collection description`);
+  assert.equal(canonical(html), url, `${url} canonical does not match its collection URL`);
+  assert.equal(metaContent(html, "og:url"), url, `${url} og:url does not match its collection URL`);
+  assert.ok(!/noindex/i.test(metaContent(html, "robots") || ""), `${url} must be indexable`);
+  assert.ok(jsonLdByType(html, "BreadcrumbList"), `${url} has no BreadcrumbList JSON-LD`);
+  assert.ok(jsonLdByType(html, "ItemList"), `${url} has no ItemList JSON-LD`);
+  assert.match(html, /href=["']\/products\/[a-z0-9-]+["']/i, `${url} has no crawlable product link`);
+}
+
+async function verifyInformationPage(path) {
+  const { url, body: html } = await get(path);
+  const title = html.match(/<title>([^<]+)<\/title>/i)?.[1]?.trim();
+  const description = metaContent(html, "description");
+  assert.ok(title, `${url} has no title`);
+  assert.ok(description, `${url} has no meta description`);
+  assert.equal(canonical(html), url, `${url} canonical does not match its page URL`);
+  assert.equal(metaContent(html, "og:url"), url, `${url} og:url does not match its page URL`);
+  assert.ok(!/noindex/i.test(metaContent(html, "robots") || ""), `${url} must be indexable`);
+  assert.ok(jsonLdByType(html, "BreadcrumbList"), `${url} has no BreadcrumbList JSON-LD`);
+  assert.doesNotMatch(html, /href=["']#/i, `${url} contains a placeholder hash link`);
+}
+
 async function main() {
   const home = await get("/");
   const products = await get("/products");
@@ -109,11 +149,15 @@ async function main() {
 
   assert.ok(home.body.includes("Explore the collection"), "Homepage is missing its crawlable collection CTA");
   const sitemapUrls = urlsFromSitemap(sitemapXml);
+  assert.equal(new Set(sitemapUrls).size, sitemapUrls.length, "Sitemap contains duplicate URLs");
   assert.ok(sitemapUrls.includes(`${site}/`), "Sitemap is missing the home URL");
   assert.ok(sitemapUrls.includes(`${site}/products`), "Sitemap is missing /products");
   assert.ok(!/Disallow:\s*\/products(?:\/|\s|$)/i.test(robots), "robots.txt blocks the public products route");
   const productUrls = sitemapUrls.filter((url) => new URL(url).pathname.startsWith("/products/"));
+  const collectionUrls = sitemapUrls.filter((url) => new URL(url).pathname.startsWith("/collections/"));
   assert.ok(productUrls.length > 0, "Sitemap contains no product URLs");
+  assert.ok(collectionUrls.length >= 3, "Sitemap contains fewer than three real collection URLs");
+  for (const path of informationPaths) assert.ok(sitemapUrls.includes(`${site}${path}`), `Sitemap is missing ${path}`);
   assert.ok(!sitemapUrls.some((url) => forbiddenProductPath.test(new URL(url).pathname)), "Sitemap contains a demo/test product URL");
   assert.ok(!products.body.includes("0 exquisite pieces found"), "/products SSR falsely reports zero products");
   assert.ok(!products.body.includes("No categories available"), "/products SSR falsely reports no categories");
@@ -126,8 +170,10 @@ async function main() {
   for (const url of productUrls.slice(0, sampleCount)) {
     await verifyProduct(url, productTitles, productDescriptions);
   }
+  for (const url of collectionUrls.slice(0, 3)) await verifyCollection(url);
+  for (const path of informationPaths) await verifyInformationPage(path);
 
-  console.log(`SEO production verification passed: ${sitemapUrls.length} sitemap URLs, ${Math.min(sampleCount, productUrls.length)} product pages.`);
+  console.log(`SEO production verification passed: ${sitemapUrls.length} sitemap URLs, ${Math.min(sampleCount, productUrls.length)} product pages, 3 collection pages, and ${informationPaths.length} information pages.`);
 }
 
 main().catch((error) => {

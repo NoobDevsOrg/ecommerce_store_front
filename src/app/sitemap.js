@@ -10,6 +10,11 @@ const staticRoutes = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/products", changeFrequency: "daily", priority: 0.9 },
   { path: "/collections", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/about", changeFrequency: "monthly", priority: 0.5 },
+  { path: "/contact", changeFrequency: "monthly", priority: 0.5 },
+  { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
+  { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
+  { path: "/shipping", changeFrequency: "monthly", priority: 0.4 },
 ];
 const SITEMAP_CATALOGUE_LIMIT = 1000;
 const SITEMAP_CATALOGUE_TIMEOUT_MS = 5_000;
@@ -46,7 +51,7 @@ export default async function sitemap() {
     ];
   } catch {
     // Never invent product URLs when the authoritative catalogue cannot be
-    // read in time. The two public landing pages remain truthful/crawlable.
+    // read in time. Only the safe static public pages remain crawlable.
     return sitemapEntries;
   }
 }
