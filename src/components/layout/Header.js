@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getToken } from "../../lib/auth";
 import { clearCustomerLogoutState, CUSTOMER_AUTH_EVENT, getStoredCustomer } from "../../lib/customerAuth";
@@ -20,7 +20,9 @@ function HeaderContent() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const mobileSearchInputRef = useRef(null);
   const { count: customerNotificationCount } = useNotificationCount("customer", Boolean(customer && !isAdminAuthenticated));
   const { count: adminNotificationCount } = useNotificationCount("admin", Boolean(isAdminAuthenticated));
 
@@ -117,6 +119,10 @@ function HeaderContent() {
     };
   }, [isMobileMenuOpen]);
 
+  useEffect(() => {
+    if (isMobileSearchOpen) mobileSearchInputRef.current?.focus();
+  }, [isMobileSearchOpen]);
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -156,6 +162,7 @@ function HeaderContent() {
     if (!query) {
       return;
     }
+    setIsMobileSearchOpen(false);
     router.push(`/search?q=${encodeURIComponent(query)}`);
   };
 
@@ -167,6 +174,7 @@ function HeaderContent() {
 
   const navLinks = [
     { name: "Products", href: "/products" },
+    { name: "Collections", href: "/collections" },
     // { name: "Blogs", href: "/blogs" },
     // { name: "Social", href: "#social" },
   ];
@@ -202,8 +210,8 @@ function HeaderContent() {
             ) : null}
 
             {/* Brand */}
-            <Link href="/" className="flex items-center gap-3 group relative z-[110]">
-              <div className="relative w-10 h-10 md:w-11 md:h-11 rounded-full overflow-hidden border border-[#b48a3c]/30 group-hover:border-[#d4af37] transition-all duration-500">
+            <Link href="/" className="group relative z-[110] flex items-center gap-2 sm:gap-3">
+              <div className="relative h-9 w-9 overflow-hidden rounded-full border border-[#b48a3c]/30 transition-all duration-500 group-hover:border-[#d4af37] md:h-11 md:w-11">
                 <Image
                   src="/sagunthala_logo2.jpg"
                   alt="Sagunthala Jewellers"
@@ -214,8 +222,8 @@ function HeaderContent() {
                 />
               </div>
 
-              <div className="leading-tight">
-                <h1 className="text-lg md:text-xl font-serif text-white tracking-tight">
+              <div className="hidden leading-tight min-[380px]:block">
+                <h1 className="font-serif text-base tracking-tight text-white md:text-xl">
                   Sagunthala
                 </h1>
                 <p className="text-[9px] uppercase tracking-[0.35em] text-[#b48a3c] font-semibold">
@@ -231,7 +239,7 @@ function HeaderContent() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="relative text-[11px] uppercase tracking-[0.25em] font-semibold text-stone-300 hover:text-[#d4af37] transition-colors"
+                className="group relative text-[11px] uppercase tracking-[0.25em] font-semibold text-stone-300 hover:text-[#d4af37] transition-colors"
               >
                 {item.name}
                 <span className="absolute left-0 -bottom-2 w-0 h-[1px] bg-[#b48a3c] transition-all duration-300 group-hover:w-full"></span>
@@ -240,7 +248,7 @@ function HeaderContent() {
           </nav>
 
           {/* Right Section */}
-          <div className="relative z-[110] flex items-center gap-1 sm:gap-4 md:gap-6">
+          <div className="relative z-[110] flex items-center gap-0.5 sm:gap-4 md:gap-6">
 
             {/* Search */}
             <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2 bg-[#1b1728] border border-stone-800 rounded-full px-3 py-2">
@@ -314,9 +322,20 @@ function HeaderContent() {
                 {adminNotificationCount > 0 ? <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-[#0c0816]">{adminNotificationCount > 99 ? "99+" : adminNotificationCount}</span> : null}
               </button>
             )}
-            {customer && !isAdminAuthenticated ? <><Link href="/account/notifications" className="relative p-2 text-stone-200 hover:text-[#d4af37]" aria-label={`Notifications${customerNotificationCount ? `, ${customerNotificationCount} unread` : ""}`}><svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0018 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 00-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>{customerNotificationCount > 0 ? <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-[#0c0816]">{customerNotificationCount > 99 ? "99+" : customerNotificationCount}</span> : null}</Link><Link href="/account/orders" className="hidden p-2 text-stone-200 hover:text-[#d4af37] sm:block" aria-label="My Orders"><svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h11.25m-11.25 4.5h11.25m-11.25 4.5h6.75M4.5 6.75h.008v.008H4.5V6.75zm0 4.5h.008v.008H4.5v-.008zm0 4.5h.008v.008H4.5v-.008z" /></svg></Link></> : null}
+            {customer && !isAdminAuthenticated ? <><Link href="/account/notifications" className="relative hidden p-2 text-stone-200 hover:text-[#d4af37] sm:inline-flex" aria-label={`Notifications${customerNotificationCount ? `, ${customerNotificationCount} unread` : ""}`}><svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0018 9.75V9a6 6 0 10-12 0v.75a8.967 8.967 0 00-2.311 6.022c1.733.64 3.56 1.085 5.454 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>{customerNotificationCount > 0 ? <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-[#0c0816]">{customerNotificationCount > 99 ? "99+" : customerNotificationCount}</span> : null}</Link><Link href="/account/orders" className="hidden p-2 text-stone-200 hover:text-[#d4af37] sm:block" aria-label="My Orders"><svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h11.25m-11.25 4.5h11.25m-11.25 4.5h6.75M4.5 6.75h.008v.008H4.5V6.75zm0 4.5h.008v.008H4.5v-.008zm0 4.5h.008v.008H4.5v-.008z" /></svg></Link></> : null}
+            {!isAdminAuthenticated ? <>
+              <button type="button" onClick={() => setIsMobileSearchOpen((open) => !open)} className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition lg:hidden ${isMobileSearchOpen ? "bg-[#d4af37] text-[#0f0a1a]" : "text-stone-200 hover:bg-white/5 hover:text-[#d4af37]"}`} aria-label={isMobileSearchOpen ? "Close search" : "Search jewellery"} aria-expanded={isMobileSearchOpen} aria-controls="mobile-header-search" title="Search">
+                {isMobileSearchOpen ? <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8" aria-hidden="true"><path strokeLinecap="round" d="m6 6 12 12M18 6 6 18" /></svg> : <svg className="h-[19px] w-[19px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.7" aria-hidden="true"><circle cx="11" cy="11" r="6.25" /><path strokeLinecap="round" d="m16 16 4 4" /></svg>}
+              </button>
+              <Link href="/collections" className="inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-200 transition hover:bg-white/5 hover:text-[#d4af37] lg:hidden" aria-label="Browse collections" title="Collections">
+                <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.6" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></svg>
+              </Link>
+              <Link href={customer ? "/account" : "/login"} className="inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-200 transition hover:bg-white/5 hover:text-[#d4af37] lg:hidden" aria-label={customer ? "My account" : "Login or register"} title={customer ? "My account" : "Login"}>
+                <svg className="h-[19px] w-[19px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="8" r="3.25" /><path strokeLinecap="round" d="M5 20c.8-3.2 3.25-5 7-5s6.2 1.8 7 5" /></svg>
+              </Link>
+            </> : null}
             {/* Cart */}
-            <Link href="/cart" className="relative inline-flex h-11 w-11 items-center justify-center" aria-label={`Shopping bag${cartCount ? `, ${cartCount} item${cartCount === 1 ? "" : "s"}` : ""}`}>
+            <Link href="/cart" className="relative inline-flex h-9 w-9 items-center justify-center sm:h-11 sm:w-11" aria-label={`Shopping bag${cartCount ? `, ${cartCount} item${cartCount === 1 ? "" : "s"}` : ""}`}>
               <svg
                 className="w-6 h-6 text-stone-200 group-hover:text-[#d4af37] transition-colors"
                 fill="none"
@@ -337,7 +356,7 @@ function HeaderContent() {
             {/* Mobile Toggle */}
             {!isAdminAuthenticated ? (
               <button
-                className="inline-flex h-11 w-11 items-center justify-center text-stone-200 hover:text-[#d4af37] lg:hidden"
+                className="inline-flex h-9 w-9 items-center justify-center text-stone-200 hover:text-[#d4af37] sm:h-11 sm:w-11 lg:hidden"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
                 aria-expanded={isMobileMenuOpen}
@@ -362,17 +381,25 @@ function HeaderContent() {
         </div>
       </header>
 
+      <div id="mobile-header-search" className={`fixed left-0 right-0 top-[70px] z-[990] border-b border-[#b48a3c]/25 bg-[#100b18]/[.98] px-3 py-3 shadow-[0_16px_34px_rgba(0,0,0,.45)] backdrop-blur-xl transition-[opacity,transform] duration-200 lg:hidden ${isMobileSearchOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"}`} aria-hidden={!isMobileSearchOpen}>
+        <form onSubmit={handleSearch} className="mx-auto flex max-w-lg items-center gap-2 rounded-xl border border-stone-700 bg-[#171020] p-1.5">
+          <label className="sr-only" htmlFor="mobile-header-search-input">Search jewellery</label>
+          <input ref={mobileSearchInputRef} id="mobile-header-search-input" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search jewellery" type="search" tabIndex={isMobileSearchOpen ? 0 : -1} className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-base text-stone-100 placeholder:text-stone-500 focus:outline-none" />
+          <button type="submit" tabIndex={isMobileSearchOpen ? 0 : -1} className="min-h-11 rounded-lg bg-[#d4af37] px-4 text-xs font-bold uppercase tracking-wider text-[#0f0a1a] transition hover:bg-[#f0d984]">Search</button>
+        </form>
+      </div>
+
       <div aria-hidden="true" className="h-[70px] w-full" />
 
       {/* Mobile Menu */}
       <div
         id="customer-mobile-menu"
-        className={`fixed inset-0 z-[90] overflow-y-auto bg-[#0c0816] transition-all duration-500 lg:hidden ${isMobileMenuOpen
+        className={`fixed inset-0 z-[90] overflow-y-auto bg-[#0c0816] transition-[opacity,transform] duration-200 ease-out lg:hidden ${isMobileMenuOpen
           ? "opacity-100 translate-y-0"
           : "opacity-0 -translate-y-full pointer-events-none"
           }`}
       >
-        <div className="flex min-h-full flex-col items-center justify-center gap-7 px-6 py-24">
+        <div className="flex min-h-full flex-col items-center justify-center gap-7 bg-[#0c0816] px-6 py-24">
           <form onSubmit={(event) => { handleSearch(event); setIsMobileMenuOpen(false); }} className="flex w-full max-w-sm items-center rounded-xl border border-stone-700 bg-[#161022] p-1">
             <label className="sr-only" htmlFor="mobile-product-search">Search products</label>
             <input id="mobile-product-search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search jewellery" className="min-w-0 flex-1 bg-transparent px-3 py-2 text-base text-stone-100 placeholder:text-stone-500 focus:outline-none" />

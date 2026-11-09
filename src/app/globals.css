@@ -28,6 +28,23 @@ body {
   caret-color: transparent;
 }
 
+/* A deliberate loading surface prevents product media from reading as a
+   broken, empty block while the browser fetches the image. */
+@keyframes media-shimmer {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+.media-loading-surface {
+  background: linear-gradient(110deg, #140f1f 30%, #2a2033 45%, #140f1f 60%);
+  background-size: 220% 100%;
+  animation: media-shimmer 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-loading-surface { animation: none; }
+}
+
 input,
 textarea {
   caret-color: auto;

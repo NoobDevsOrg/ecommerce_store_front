@@ -20,6 +20,7 @@ export default function ProductDetailPage({ product, categoryHref = null, showBr
     const primaryImage = images.find((image) => image.is_primary) || images[0];
 
     const [selectedImageId, setSelectedImageId] = useState(primaryImage?.id ?? null);
+    const [isMainImageLoaded, setIsMainImageLoaded] = useState(false);
     const [isZooming, setIsZooming] = useState(false);
     const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
     const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -55,6 +56,10 @@ export default function ProductDetailPage({ product, categoryHref = null, showBr
         images.find((image) => image.id === selectedImageId) ||
         primaryImage ||
         { url: "/images/placeholder.jpg" };
+
+    useEffect(() => {
+        setIsMainImageLoaded(false);
+    }, [selectedImage?.id]);
 
     const handleZoomMove = (event) => {
         if (isTouchDevice) return;
@@ -93,16 +98,21 @@ export default function ProductDetailPage({ product, categoryHref = null, showBr
                     <div className="xl:pr-[clamp(1.5rem,2.8vw,3rem)] xl:border-r xl:border-stone-800/70">
                         {/* Main Image */}
                         <div
-                            className={`relative h-[clamp(280px,52vw,760px)] overflow-hidden rounded-sm bg-[#120f1d] border border-stone-800/60 mb-4 ${isTouchDevice ? "" : "cursor-zoom-in"
+                            className={`relative h-[clamp(280px,100vw,560px)] overflow-hidden rounded-2xl bg-[#120f1d] border border-stone-800/60 shadow-[0_18px_44px_rgba(0,0,0,0.22)] sm:h-[clamp(420px,52vw,760px)] mb-4 ${isTouchDevice ? "" : "cursor-zoom-in"
                                 }`}
                             onMouseEnter={() => !isTouchDevice && setIsZooming(true)}
                             onMouseLeave={() => setIsZooming(false)}
                             onMouseMove={handleZoomMove}
                         >
+                            {!isMainImageLoaded ? <div aria-hidden="true" className="media-loading-surface absolute inset-0" /> : null}
                             <img
                                 src={selectedImage?.url}
                                 alt={selectedImage?.alt_text || product.name}
-                                className={`w-full h-full object-contain ${isZooming && !isTouchDevice
+                                loading="eager"
+                                fetchPriority="high"
+                                decoding="async"
+                                onLoad={() => setIsMainImageLoaded(true)}
+                                className={`h-full w-full object-contain transition-opacity duration-300 ${isMainImageLoaded ? "opacity-100" : "opacity-0"} ${isZooming && !isTouchDevice
                                         ? "scale-[2.5] transition-none"
                                         : "scale-100 transition-transform duration-300"
                                     }`}
@@ -146,7 +156,9 @@ export default function ProductDetailPage({ product, categoryHref = null, showBr
                                     <img
                                         src={image.url}
                                         alt={image.alt_text || product.name}
-                                        className="w-full h-full object-contain bg-[#120f1d]"
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="h-full w-full bg-[#120f1d] object-contain"
                                         onError={(e) => {
                                             e.target.src = "/images/placeholder.jpg";
                                         }}

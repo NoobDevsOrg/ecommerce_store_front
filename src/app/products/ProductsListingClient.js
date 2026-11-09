@@ -723,7 +723,7 @@ const ProductCard = ({ product, index, onEnquiry }) => {
     const canEnquire = Boolean(product.isEnquiryEnabled);
 
     return <><article className="group relative overflow-hidden rounded-2xl border border-stone-800/90 bg-[#161022] shadow-[0_14px_34px_rgba(0,0,0,0.18)] transition duration-500 hover:-translate-y-1 hover:border-[#b48a3c]/55 hover:shadow-[0_24px_50px_rgba(0,0,0,0.42)] animate-fade-in" style={{ animationDelay: `${index * 45}ms` }}>
-        <div className="relative aspect-[4/5] overflow-hidden bg-[#120f1d]"><Link href={productHref(product)} className="block h-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#d4af37]"><img src={imageUrl} alt={product.name} loading="lazy" className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-105" onError={(e) => { e.currentTarget.src = "/images/placeholder.jpg"; }} /></Link><div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f0a1a]/65 via-transparent to-transparent opacity-70" />
+        <div className="media-loading-surface relative aspect-[4/5] overflow-hidden bg-[#120f1d]"><Link href={productHref(product)} className="block h-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#d4af37]"><img src={imageUrl} alt={product.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-105" onError={(e) => { e.currentTarget.src = "/images/placeholder.jpg"; }} /></Link><div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f0a1a]/65 via-transparent to-transparent opacity-70" />
             {product.category_name || product.category ? <span className="absolute left-3 top-3 rounded-full border border-[#d4af37]/35 bg-black/45 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[#f0d984] backdrop-blur">{product.category_name || product.category}</span> : null}{discount > 0 ? <span className="absolute right-3 top-3 rounded-full bg-[#b48a3c] px-2.5 py-1 text-[10px] font-bold text-[#0f0a1a]">Save {discount}%</span> : null}
             {!inStock && canBuy ? <span className="absolute bottom-3 left-3 rounded-full border border-stone-600 bg-black/60 px-3 py-1 text-xs font-medium text-stone-100 backdrop-blur">Out of stock</span> : null}
             <div className="absolute inset-x-3 bottom-3 flex translate-y-0 gap-2 transition duration-300 sm:translate-y-16 sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0"><Link href={productHref(product)} className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-white/95 px-3 text-xs font-bold text-[#17111e] transition hover:bg-[#f6e2a1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">View piece</Link>{canBuy && inStock ? <button type="button" onClick={() => addToCart(product)} className="flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-[#b48a3c] px-3 text-[#0f0a1a] transition hover:bg-[#e4c46a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d4af37]" aria-label={`Add ${product.name} to cart`}><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h2l2 12h10l2-8H7" /><circle cx="9" cy="20" r="1" /><circle cx="18" cy="20" r="1" /></svg></button> : null}</div></div>
@@ -865,6 +865,16 @@ export default function ProductsListingPage({
         () => selectedCategory ? selectedCategoryIds(categories, selectedCategory.id) : [],
         [categories, selectedCategory]
     );
+    const discoveryCategories = useMemo(
+        () => categories
+            .filter((category) => {
+                const name = String(category.name || "").toLowerCase();
+                return !category.parent_id && !category.parentId
+                    && /(jewellery|jewelry|necklace|bangle|earring|hip|mattal|salangai|dance|margam|temple)/.test(name);
+            })
+            .slice(0, 8),
+        [categories]
+    );
 
     // The actual product fetch. Runs whenever page, items-per-page, or any
     // (debounced) filter/sort value changes — search and price already come
@@ -1001,10 +1011,10 @@ export default function ProductsListingPage({
             {/* Header Section */}
             <section className="py-6 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#0f0a1a] to-[#1a1525]">
                 <div className="mx-auto max-w-[1440px] space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 className="text-3xl md:text-4xl font-serif text-white mb-2">Discover Our Collection</h1>
-                            <p className="text-sm text-stone-400">{pagination?.totalProducts ?? 0} exquisite pieces found</p>
+                            <p className="text-sm text-stone-400">{pagination?.totalProducts ?? 0} exquisite pieces found · Browse by jewellery type, collection, or occasion.</p>
                         </div>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                             <div className="relative flex-1 sm:flex-initial">
@@ -1027,6 +1037,14 @@ export default function ProductsListingPage({
                             </button>
                         </div>
                     </div>
+
+                    {discoveryCategories.length ? <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" aria-label="Popular jewellery categories">
+                        <button type="button" onClick={() => selectCategory(null)} className={`min-h-10 shrink-0 snap-start rounded-full border px-4 text-xs font-semibold transition ${!selectedCategoryId ? "border-[#d4af37] bg-[#d4af37] text-[#0f0a1a]" : "border-stone-700 bg-[#12101b] text-stone-300 hover:border-[#b48a3c] hover:text-[#f0d984]"}`}>All pieces</button>
+                        {discoveryCategories.map((category) => {
+                            const isSelected = selectedCategoryId === category.id;
+                            return <button key={category.id} type="button" onClick={() => selectCategory(category)} className={`min-h-10 shrink-0 snap-start rounded-full border px-4 text-xs font-semibold transition ${isSelected ? "border-[#d4af37] bg-[#d4af37] text-[#0f0a1a]" : "border-stone-700 bg-[#12101b] text-stone-300 hover:border-[#b48a3c] hover:text-[#f0d984]"}`}>{category.name}</button>;
+                        })}
+                    </div> : null}
 
                     {/* Controls */}
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
